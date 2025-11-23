@@ -1,38 +1,53 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { Github, Mail, Shield, ArrowLeft, LockKeyhole, User } from 'lucide-react';
-import Link from 'next/link';
+import React, { useActionState, useEffect, useState } from "react";
+import {
+  Github,
+  Mail,
+  Shield,
+  ArrowLeft,
+  LockKeyhole,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import { stat } from "fs";
+import { signIn } from "../actions/auth";
 
 const buttonBase =
-  'w-full inline-flex items-center justify-center gap-2 px-4 py-3 border text-sm font-mono uppercase tracking-wider transition-colors rounded-none';
+  "w-full inline-flex items-center justify-center gap-2 px-4 py-3 border text-sm font-mono uppercase tracking-wider transition-colors rounded-none";
 
 const inputBase =
-  'w-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] px-4 py-3 focus:outline-none focus:border-[var(--color-ink)] font-mono text-sm placeholder-[var(--color-ink-soft)]';
+  "w-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] px-4 py-3 focus:outline-none focus:border-[var(--color-ink)] font-mono text-sm placeholder-[var(--color-ink-soft)]";
 
 export default function SignInPage() {
-type Theme = 'dark' | 'light' | 'neon' | 'sunset' | 'sand';
-const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
-
-  const [theme, setTheme] = useState<Theme>('dark');
+  type Theme = "dark" | "light" | "neon" | "sunset" | "sand";
+  const themeOptions: Theme[] = ["dark", "light", "neon", "sunset", "sand"];
+  const [theme, setTheme] = useState<Theme>("dark");
+  const [state, formAction, pending] = useActionState(signIn, {
+    error: "",
+    values: { email: "" },
+  });
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('almurshed-theme') : null;
+    const stored =
+      typeof window !== "undefined"
+        ? localStorage.getItem("almurshed-theme")
+        : null;
     if (stored && themeOptions.includes(stored as Theme)) {
       setTheme(stored as Theme);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
+    if (typeof document !== "undefined") {
       const root = document.documentElement;
       root.classList.remove(...themeOptions);
       root.classList.add(theme);
-      localStorage.setItem('almurshed-theme', theme);
+      localStorage.setItem("almurshed-theme", theme);
     }
   }, [theme]);
 
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   return (
     <div
@@ -58,7 +73,7 @@ const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
               onClick={toggleTheme}
               className="inline-flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-xs font-mono uppercase tracking-widest hover:border-[var(--color-ink)]"
             >
-              {theme === 'dark' ? 'وضع نهاري' : 'وضع ليلي'}
+              {theme === "dark" ? "وضع نهاري" : "وضع ليلي"}
             </button>
             <Link
               href="/"
@@ -80,7 +95,8 @@ const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
             </div>
             <h1 className="text-4xl font-medium leading-tight">تسجيل الدخول</h1>
             <p className="text-[var(--color-ink-soft)] leading-relaxed">
-              سجّل دخولك للوصول إلى لوحة التحكم، الوحدات، وخطوط النشر. يمكنك استخدام GitHub أو Google أو الدخول يدوياً.
+              سجّل دخولك للوصول إلى لوحة التحكم، الوحدات، وخطوط النشر. يمكنك
+              استخدام GitHub أو Google أو الدخول يدوياً.
             </p>
             <div className="grid grid-cols-2 gap-4 text-xs text-[var(--color-ink-soft)] font-mono uppercase tracking-widest">
               <div className="flex items-center gap-2">
@@ -128,14 +144,26 @@ const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
 
             <div className="h-[1px] bg-[var(--color-border)]" />
 
-            <form className="space-y-4">
+            <form className="space-y-4" action={formAction}>
+              {state.error && (
+                <div className="p-3 bg-[var(--color-error-surface)] border border-[var(--color-error-border)] text-[var(--color-error-ink)] text-sm font-mono">
+                  {state.error}
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
                   البريد الإلكتروني
                 </label>
                 <div className="flex items-center gap-3 border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3">
                   <User className="w-4 h-4 text-[var(--color-ink-soft)]" />
-                  <input className={`${inputBase} border-none bg-transparent px-0`} placeholder="name@company.com" />
+                  <input
+                    className={`${inputBase} border-none bg-transparent px-0`}
+                    placeholder="name@company.com"
+                    name="email"
+                    type="email"
+                    required
+                    defaultValue={state.values.email ?? ""}
+                  />
                 </div>
               </div>
 
@@ -149,13 +177,18 @@ const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
                     type="password"
                     className={`${inputBase} border-none bg-transparent px-0`}
                     placeholder="••••••••"
+                    name="password"
+                    required
                   />
                 </div>
               </div>
 
               <div className="flex justify-between items-center text-xs font-mono text-[var(--color-ink-soft)]">
                 <label className="inline-flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="accent-[var(--color-accent)]" />
+                  <input
+                    type="checkbox"
+                    className="accent-[var(--color-accent)]"
+                  />
                   تذكرني
                 </label>
                 <Link href="#" className="hover:text-[var(--color-ink)]">
@@ -167,13 +200,16 @@ const themeOptions: Theme[] = ['dark', 'light', 'neon', 'sunset', 'sand'];
                 type="submit"
                 className="w-full bg-[var(--color-accent)] text-[var(--color-ink)] border border-[var(--color-accent)] hover:bg-[var(--color-accent-strong)] px-4 py-3 font-mono text-sm uppercase tracking-widest transition-colors rounded-none"
               >
-                تسجيل الدخول
+                {pending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
               </button>
 
               <div className="text-[var(--color-ink-soft)] text-xs font-mono flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-[var(--color-accent)]" />
-                ليس لديك حساب؟{' '}
-                <Link href="/sign-up" className="text-[var(--color-ink)] hover:text-[var(--color-accent)]">
+                ليس لديك حساب؟{" "}
+                <Link
+                  href="/sign-up"
+                  className="text-[var(--color-ink)] hover:text-[var(--color-accent)]"
+                >
                   إنشاء حساب
                 </Link>
               </div>
