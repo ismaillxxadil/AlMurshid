@@ -1,0 +1,58 @@
+import { NextRequest } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
+
+/**
+ * GET /api/projects/[projectId]/memories
+ * 
+ * Retrieves all memory items (constants, fragments) for a specific project
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { projectId: string } }
+) {
+  try {
+    const projectId = parseInt(params.projectId);
+    
+    if (isNaN(projectId)) {
+      return Response.json({ error: 'Invalid project ID' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify user owns the project
+    const { data: project } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', projectId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!project) {
+      return Response.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Fetch memories
+    const { data: memories, error } = await supabase
+      .from('memory')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return Response.json(memories || []);
+  } catch (error) {
+    console.error('Error fetching memories:', error);
+    return Response.json(
+      { error: 'Failed to fetch memories' },
+      { status: 500 }
+    );
+  }
+}
