@@ -1,5 +1,6 @@
 import { streamText } from 'ai';
 import { PROJECT_PLANNING_SYSTEM_PROMPT, ALMURSHID_ASSISTANT_PROMPT } from '@/lib/ai/prompts';
+import { alMurshidTools } from '@/lib/ai/tools';
 import { getAIModel } from '@/lib/ai/config';
 import { NextRequest } from 'next/server';
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     let systemPrompt = PROJECT_PLANNING_SYSTEM_PROMPT;
     let enhancedMessages = messages;
 
-    // If projectId and context are provided, use المرشد assistant prompt
+    // If projectId and context are provided, use المرشد assistant prompt with tools
     if (projectId && context) {
       systemPrompt = ALMURSHID_ASSISTANT_PROMPT;
       
@@ -141,7 +142,10 @@ ${dependenciesInfo}${constantsInfo}${fragmentsInfo}
       system: systemPrompt,
       messages: enhancedMessages,
       temperature: 0.7,
-      maxTokens: 1000,
+      maxTokens: projectId && context ? 2000 : 1000,
+      tools: projectId && context ? alMurshidTools : undefined,
+      toolChoice: projectId && context ? 'auto' : undefined,
+      maxSteps: 5,
     });
 
     return result.toDataStreamResponse();

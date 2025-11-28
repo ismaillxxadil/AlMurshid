@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
+import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -48,6 +49,7 @@ interface Project {
 
 export default function ProjectAiPage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = Number(params.projectId);
   
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,15 +58,63 @@ export default function ProjectAiPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [toolExecutionMessage, setToolExecutionMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load project data
+  const loadProjectData = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Load project info
+      const projectResponse = await fetch(`/api/projects/${projectId}`);
+      if (projectResponse.ok) {
+        const projectData = await projectResponse.json();
+        setProject(projectData);
+      }
+
+      // Load tasks
+      const tasksResponse = await fetch(`/api/projects/${projectId}/tasks`);
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json();
+        setTasks(tasksData);
+      }
+
+      // Load phases
+      const phasesResponse = await fetch(`/api/projects/${projectId}/phases`);
+      if (phasesResponse.ok) {
+        const phasesData = await phasesResponse.json();
+        setPhases(phasesData);
+      }
+
+      // Load dependencies
+      const depsResponse = await fetch(`/api/projects/${projectId}/dependencies`);
+      if (depsResponse.ok) {
+        const depsData = await depsResponse.json();
+        setDependencies(depsData);
+      }
+
+      // Load memories (constants, fragments)
+      const memoriesResponse = await fetch(`/api/projects/${projectId}/memories`);
+      if (memoriesResponse.ok) {
+        const memoriesData = await memoriesResponse.json();
+        setMemories(memoriesData);
+      }
+    } catch (error) {
+      console.error('Error loading project data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [projectId]);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
     initialMessages: [
       {
         id: 'system-1',
-        role: 'system' as const,
-        content: 'مرحباً! أنا المرشد، مساعدك الذكي في هذا المشروع. أستطيع مساعدتك في:\n\n📋 إدارة المهام (إضافة، تعديل، حذف، إعادة ترتيب)\n🎯 إدارة المراحل والتبعيات\n🔧 تحديث الأدوات والثوابت\n💡 إدارة الأفكار والشذرات\n📊 تحليل التقدم وإعطاء تقارير\n\nما الذي تحتاج مساعدة فيه اليوم؟'
+        role: 'assistant' as const,
+        content: 'مرحباً! أنا المرشد، مساعدك الذكي في هذا المشروع. أستطيع مساعدتك في:\n\n📋 إدارة المهام (إضافة، تعديل، حذف، إعادة ترتيب)\n🎯 إدارة المراحل والتبعيات\n📊 تحليل التقدم وإعطاء تقارير\n💡 اقتراح تحسينات\n\nما الذي تحتاج مساعدة فيه اليوم؟'
       }
     ],
     body: {
@@ -76,56 +126,22 @@ export default function ProjectAiPage() {
         dependencies,
         memories
       }
-    }
+    },
+    onFinish: async (message) => {
+      // Check if AI used any tools (tool calls will trigger data refresh)
+      if (message.toolInvocations && message.toolInvocations.length > 0) {
+        setToolExecutionMessage('✅ تم تنفيذ العمليات بنجاح! جاري تحديث البيانات...');
+        // Refresh data after tool execution
+        await loadProjectData();
+        setTimeout(() => setToolExecutionMessage(null), 3000);
+      }
+    },
   });
 
-  // Load project data
+  // Load project data on mount
   useEffect(() => {
-    const loadProjectData = async () => {
-      try {
-        // Load project info
-        const projectResponse = await fetch(`/api/projects/${projectId}`);
-        if (projectResponse.ok) {
-          const projectData = await projectResponse.json();
-          setProject(projectData);
-        }
-
-        // Load tasks
-        const tasksResponse = await fetch(`/api/projects/${projectId}/tasks`);
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json();
-          setTasks(tasksData);
-        }
-
-        // Load phases
-        const phasesResponse = await fetch(`/api/projects/${projectId}/phases`);
-        if (phasesResponse.ok) {
-          const phasesData = await phasesResponse.json();
-          setPhases(phasesData);
-        }
-
-        // Load dependencies
-        const depsResponse = await fetch(`/api/projects/${projectId}/dependencies`);
-        if (depsResponse.ok) {
-          const depsData = await depsResponse.json();
-          setDependencies(depsData);
-        }
-
-        // Load memories (constants, fragments)
-        const memoriesResponse = await fetch(`/api/projects/${projectId}/memories`);
-        if (memoriesResponse.ok) {
-          const memoriesData = await memoriesResponse.json();
-          setMemories(memoriesData);
-        }
-      } catch (error) {
-        console.error('Error loading project data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadProjectData();
-  }, [projectId]);
+  }, [loadProjectData]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -139,45 +155,55 @@ export default function ProjectAiPage() {
           <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">المرشد - المساعد الذكي</div>
           <div className="text-2xl font-semibold">إدارة المشروع والتعديلات</div>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-ink-soft)]">
-          <span className="px-2 py-1 bg-[var(--color-surface)]">{phases.length} مراحل</span>
-          <span className="px-2 py-1 bg-[var(--color-surface)]">{tasks.length} مهمة</span>
-          <span className="px-2 py-1 bg-[var(--color-surface)]">{dependencies.length} تبعية</span>
-          <span className="px-2 py-1 bg-[var(--color-surface)]">{memories.length} عنصر</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={loadProjectData}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-3 py-2 text-xs bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors disabled:opacity-50"
+            title="تحديث البيانات"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            تحديث
+          </button>
+          <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-ink-soft)]">
+            <span className="px-2 py-1 bg-[var(--color-surface)]">{phases.length} مراحل</span>
+            <span className="px-2 py-1 bg-[var(--color-surface)]">{tasks.length} مهمة</span>
+            <span className="px-2 py-1 bg-[var(--color-surface)]">{dependencies.length} تبعية</span>
+            <span className="px-2 py-1 bg-[var(--color-surface)]">{memories.length} عنصر</span>
+          </div>
         </div>
       </div>
+
+      {/* Tool Execution Success Message */}
+      {toolExecutionMessage && (
+        <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 text-green-600">
+          <CheckCircle2 className="w-5 h-5" />
+          <span>{toolExecutionMessage}</span>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 text-xs">
         <button
-          onClick={() => {
-            const event = new Event('submit', { bubbles: true, cancelable: true });
-            handleInputChange({ target: { value: 'أعطني ملخص عن حالة المشروع' } } as any);
-          }}
+          onClick={() => handleInputChange({ target: { value: 'أعطني ملخص عن حالة المشروع' } } as any)}
           className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
         >
           📊 حالة المشروع
         </button>
         <button
-          onClick={() => {
-            handleInputChange({ target: { value: 'أظهر لي المهام المتبقية' } } as any);
-          }}
+          onClick={() => handleInputChange({ target: { value: 'أظهر لي المهام المتبقية والمحظورة' } } as any)}
           className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
         >
           ✅ المهام المتبقية
         </button>
         <button
-          onClick={() => {
-            handleInputChange({ target: { value: 'ما هي الأدوات والتقنيات المستخدمة؟' } } as any);
-          }}
+          onClick={() => handleInputChange({ target: { value: 'أضف مهمة جديدة' } } as any)}
           className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
         >
-          🔧 الأدوات
+          ➕ إضافة مهمة
         </button>
         <button
-          onClick={() => {
-            handleInputChange({ target: { value: 'اقترح تحسينات على المشروع' } } as any);
-          }}
+          onClick={() => handleInputChange({ target: { value: 'اقترح تحسينات على المشروع' } } as any)}
           className="px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-accent)] transition-colors"
         >
           💡 اقتراحات
@@ -246,8 +272,9 @@ export default function ProjectAiPage() {
       </form>
 
       {/* Help Text */}
-      <div className="text-[10px] text-center text-[var(--color-ink-soft)] font-mono">
-        💡 يمكنك طلب إضافة مهام، تعديل الصعوبة، تغيير الحالة، إضافة أدوات، أو أي تعديلات أخرى
+      <div className="text-[10px] text-center text-[var(--color-ink-soft)] font-mono space-y-1">
+        <div>💡 يمكنك طلب: إضافة/تعديل/حذف مهام، إنشاء مراحل، إضافة تبعيات، تغيير الصعوبة، أو أي تعديلات أخرى</div>
+        <div>🔧 المرشد يستطيع تنفيذ العمليات مباشرة على قاعدة البيانات</div>
       </div>
     </div>
   );
