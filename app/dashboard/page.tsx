@@ -9,9 +9,6 @@ import {
   Edit2,
   Trash2,
   LayoutGrid,
-  Server,
-  Database,
-  Cpu,
   ChevronDown,
   AlertCircle,
   Flame,
@@ -27,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { getUserDashboardData, signOut } from "../actions/auth";
 import { addProject } from "../actions/projects";
 import Image from "next/image";
+import { Logo } from "@/components/Logo";
 
 type Theme =
   | "dark"
@@ -63,6 +61,14 @@ type Quest = {
   title: string;
   reward: number;
   completed: boolean;
+};
+
+type Achievement = {
+  id: string;
+  name: string;
+  description?: string;
+  active?: boolean;
+  earned_at?: string;
 };
 
 function SubmitButton() {
@@ -105,6 +111,7 @@ export default function DashboardPage() {
   const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
 
   const [projects, setProjects] = useState<Project[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -129,6 +136,9 @@ export default function DashboardPage() {
           setCurrentXp(Math.min(data.stats.totalXp % 5000, 5000)); // XP towards next level
           setUserProfilePicture(data.stats.userProfilePicture || null);
           setStreak(data.stats.streak ?? 0);
+          setAchievements(
+            (data.achievements as Achievement[] | undefined) || []
+          );
         }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
@@ -305,19 +315,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="tech-border-b bg-[var(--color-bg)]/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-[var(--color-accent)] flex items-center justify-center rounded-none">
-              <Cpu className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="text-lg font-bold font-mono tracking-tight leading-none">
-                ALMurshed<span className="text-[var(--color-accent)]">_</span>
-              </div>
-              <div className="text-[10px] text-[var(--color-ink-soft)] font-mono uppercase tracking-widest mt-1">
-                SYSTEM::DASHBOARD
-              </div>
-            </div>
-          </div>
+          <Logo subtitle="SYSTEM::DASHBOARD" />
 
           <div className="flex items-center gap-6">
             {/* NEW: Gamified Streak Counter */}
@@ -575,59 +573,65 @@ export default function DashboardPage() {
 
         {/* Achievements / Badges Strip */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              name: "Bug Hunter",
-              desc: "Fixed 50 bugs",
-              active: true,
-              icon: <Trash2 className="w-4 h-4" />,
-            },
-            {
-              name: "Night Owl",
-              desc: "Committed after 2 AM",
-              active: true,
-              icon: <Sparkles className="w-4 h-4" />,
-            },
-            {
-              name: "Architect",
-              desc: "Created 10 Projects",
-              active: false,
-              icon: <LayoutGrid className="w-4 h-4" />,
-            },
-            {
-              name: "Defender",
-              desc: "No critical errors",
-              active: false,
-              icon: <Shield className="w-4 h-4" />,
-            },
-          ].map((badge, idx) => (
-            <div
-              key={idx}
-              className={`flex items-center gap-4 p-4 border ${
-                badge.active
-                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
-                  : "border-[var(--color-border)] bg-[var(--color-bg)] opacity-50"
-              }`}
-            >
+          {loading ? (
+            Array.from({ length: 4 }).map((_, idx) => (
               <div
-                className={`p-2 ${
-                  badge.active
-                    ? "text-[var(--color-accent)]"
-                    : "text-[var(--color-ink-soft)]"
-                }`}
+                key={idx}
+                className="flex items-center gap-4 p-4 border border-[var(--color-border)] bg-[var(--color-bg)]"
               >
-                {badge.icon}
-              </div>
-              <div>
-                <div className="text-xs font-bold font-mono uppercase">
-                  {badge.name}
-                </div>
-                <div className="text-[10px] text-[var(--color-ink-soft)] font-mono">
-                  {badge.desc}
+                <Skeleton className="w-10 h-10" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-32" />
                 </div>
               </div>
+            ))
+          ) : achievements.length === 0 ? (
+            <div className="col-span-2 md:col-span-4 border border-[var(--color-border)] bg-[var(--color-bg)] p-6 text-center text-xs font-mono text-[var(--color-ink-soft)] uppercase tracking-widest">
+              No achievements unlocked yet
             </div>
-          ))}
+          ) : (
+            achievements.map((badge) => {
+              const isActive = badge.active ?? true;
+              return (
+                <div
+                  key={badge.id}
+                  className={`flex items-center gap-4 p-4 border ${
+                    isActive
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
+                      : "border-[var(--color-border)] bg-[var(--color-bg)] opacity-70"
+                  }`}
+                >
+                  <div
+                    className={`p-2 ${
+                      isActive
+                        ? "text-[var(--color-accent)]"
+                        : "text-[var(--color-ink-soft)]"
+                    }`}
+                  >
+                    {isActive ? (
+                      <Sparkles className="w-4 h-4" />
+                    ) : (
+                      <Shield className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold font-mono uppercase">
+                      {badge.name}
+                    </div>
+                    <div className="text-[10px] text-[var(--color-ink-soft)] font-mono">
+                      {badge.description || "Achievement unlocked"}
+                    </div>
+                    {badge.earned_at && (
+                      <div className="text-[9px] text-[var(--color-ink-soft)] font-mono mt-1">
+                        {new Date(badge.earned_at).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </section>
 
         {/* Projects Section */}
@@ -654,12 +658,20 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((proj) => (
-              <div key={proj.id} className="relative border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:border-[var(--color-accent)] transition-all group">
+              <div
+                key={proj.id}
+                className="group relative bg-[var(--color-bg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all p-6 flex flex-col justify-between min-h-[240px]"
+              >
+                <Link
+                  href={`/dashboard/${proj.id}`}
+                  className="absolute inset-0 z-0"
+                  aria-label={`Open project ${proj.name}`}
+                />
                 {/* Hover Corner Effect */}
                 <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                 {/* Top Bar */}
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-6 relative z-10">
                   <div
                     className={`px-2 py-1 text-[10px] font-mono uppercase tracking-widest border ${
                       statusColor[proj.status]
@@ -673,7 +685,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1">
+                <div className="flex-1 relative z-10">
                   {editingId === proj.id ? (
                     <div className="flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-200">
                       <input
@@ -724,7 +736,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Footer / Progress */}
-                <div className="mt-6">
+                <div className="mt-6 relative z-10">
                   {/* Reward Pill */}
                   <div className="mb-3 flex justify-end">
                     <span className="text-[9px] font-mono text-[var(--color-gold)] bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30 px-2 py-0.5">
@@ -735,7 +747,8 @@ export default function DashboardPage() {
                   <div className="mb-3">
                     <Link
                       href={`/dashboard/${proj.id}`}
-                      className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] font-mono font-bold uppercase tracking-widest border border-[var(--color-ink)] hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] hover:text-white transition-colors"
+                      className="relative inline-flex items-center gap-2 px-3 py-1 bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] font-mono font-bold uppercase tracking-widest border border-[var(--color-ink)] hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] hover:text-white transition-colors"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ArrowLeft className="w-3 h-3 rotate-180" />
                       Open Project
@@ -754,14 +767,14 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Action Overlay */}
-                  <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                  <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingId(proj.id);
                         setEditingName(proj.name);
                       }}
-                      className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
+                      className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
                       title="Edit Name"
                     >
                       <Edit2 className="w-3 h-3" />
@@ -774,7 +787,7 @@ export default function DashboardPage() {
                             prev.filter((p) => p.id !== proj.id)
                           );
                       }}
-                      className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
+                      className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
                       title="Delete Project"
                     >
                       <Trash2 className="w-3 h-3" />
