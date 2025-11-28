@@ -3,10 +3,11 @@
  * Use these in your frontend components
  */
 
-import { ChatMessage, ProjectPlan } from '@/lib/types/task';
+import { ChatMessage, ProjectPlan, Task } from '@/lib/types/task';
 
 /**
  * Send a message to the chat endpoint and get streaming response
+ * Used during initial project planning phase
  * 
  * @param messages - Full conversation history
  * @returns Response object with streaming body
@@ -37,6 +38,7 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<Response
 
 /**
  * Generate a project plan from conversation history
+ * Called once when user clicks "Generate Plan"
  * 
  * @param messages - Full conversation history
  * @returns ProjectPlan object with structured tasks
@@ -63,6 +65,42 @@ export async function generateProjectPlan(messages: ChatMessage[]): Promise<Proj
   }
 
   return response.json();
+}
+
+/**
+ * Chat with AI within a project context
+ * AI has access to all project tasks and can suggest modifications
+ * 
+ * @param projectId - The project ID
+ * @param messages - Conversation history
+ * @param tasks - Current project tasks
+ * @returns Response object with streaming body
+ * 
+ * @example
+ * ```typescript
+ * const response = await chatWithProjectAI('project-123', messages, tasks);
+ * // Handle streaming response
+ * ```
+ */
+export async function chatWithProjectAI(
+  projectId: string,
+  messages: ChatMessage[],
+  tasks: Task[]
+): Promise<Response> {
+  const response = await fetch('/api/project-ai', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ projectId, messages, tasks }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to chat with project AI');
+  }
+
+  return response;
 }
 
 /**

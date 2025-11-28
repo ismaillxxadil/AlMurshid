@@ -31,6 +31,12 @@ export interface Task {
   
   /** Estimated time to complete (in hours) */
   timeEstimate: number;
+  
+  /** Whether the task has been completed (optional, for tracking) */
+  completed?: boolean;
+  
+  /** When the task was completed (optional) */
+  completedAt?: string;
 }
 
 /**
