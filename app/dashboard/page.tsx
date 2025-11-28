@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { getUserDashboardData, signOut } from "../actions/auth";
 import { addProject } from "../actions/projects";
 import Image from "next/image";
@@ -79,6 +80,7 @@ function SubmitButton() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return "dark";
     const stored = window.localStorage.getItem("almurshed-theme");
@@ -191,18 +193,12 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    if (formState.success) {
+    if (formState.success && formState.project) {
       setFormOpen(false);
-      // Refresh projects data
-      const fetchData = async () => {
-        const data = await getUserDashboardData();
-        if (data) {
-          setProjects(data.projects as Project[]);
-        }
-      };
-      fetchData();
+      // Navigate to generate page for the new project
+      router.push(`/dashboard/${formState.project.id}/generate`);
     }
-  }, [formState.success]);
+  }, [formState.success, formState.project, router]);
 
   const handleSaveName = (id: string) => {
     setProjects((prev) =>
@@ -658,7 +654,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((proj) => (
-              <Link href={`dashboard/${proj.id}`} key={proj.id}>
+              <div key={proj.id} className="relative border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover:border-[var(--color-accent)] transition-all group">
                 {/* Hover Corner Effect */}
                 <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
@@ -688,13 +684,19 @@ export default function DashboardPage() {
                       />
                       <div className="flex gap-2 mt-2">
                         <button
-                          onClick={() => handleSaveName(proj.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveName(proj.id);
+                          }}
                           className="text-xs bg-[var(--color-accent)] text-white px-3 py-1 font-bold hover:bg-[var(--color-accent-strong)]"
                         >
                           SAVE
                         </button>
                         <button
-                          onClick={() => setEditingId(null)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingId(null);
+                          }}
                           className="text-xs border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-surface-alt)]"
                         >
                           CANCEL
@@ -704,7 +706,8 @@ export default function DashboardPage() {
                   ) : (
                     <h3
                       className="text-xl font-bold mb-2 group-hover:text-[var(--color-accent)] transition-colors cursor-pointer"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingId(proj.id);
                         setEditingName(proj.name);
                       }}
@@ -753,7 +756,8 @@ export default function DashboardPage() {
                   {/* Action Overlay */}
                   <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingId(proj.id);
                         setEditingName(proj.name);
                       }}
@@ -763,12 +767,13 @@ export default function DashboardPage() {
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation();
                         confirm("Delete?") &&
-                        setProjects((prev) =>
-                          prev.filter((p) => p.id !== proj.id)
-                        )
-                      }
+                          setProjects((prev) =>
+                            prev.filter((p) => p.id !== proj.id)
+                          );
+                      }}
                       className="p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
                       title="Delete Project"
                     >
@@ -776,7 +781,7 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </section>

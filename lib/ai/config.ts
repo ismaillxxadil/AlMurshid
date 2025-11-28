@@ -26,8 +26,10 @@ const deepseek = createOpenAI({
  * @param provider - 'openai' for GPT-4o-mini or 'deepseek' for DeepSeek V3
  * @returns Configured AI model instance
  */
-export function getAIModel(provider: AIProvider = 'openai') {
-  switch (provider) {
+export function getAIModel(provider?: AIProvider) {
+  const selectedProvider = provider || getCurrentProvider();
+  
+  switch (selectedProvider) {
     case 'deepseek':
       return deepseek('deepseek-chat'); // DeepSeek V3 model
     case 'openai':
@@ -37,9 +39,10 @@ export function getAIModel(provider: AIProvider = 'openai') {
 }
 
 /**
- * Get current AI provider from environment or default to OpenAI
+ * Get current AI provider from environment or default to DeepSeek
  */
 export function getCurrentProvider(): AIProvider {
   const provider = process.env.AI_PROVIDER?.toLowerCase();
-  return provider === 'deepseek' ? 'deepseek' : 'openai';
+  // Default to deepseek since the API key appears to be for DeepSeek
+  return provider === 'openai' ? 'openai' : 'deepseek';
 }

@@ -1,5 +1,5 @@
 import { generateText } from 'ai';
-import { PLAN_GENERATION_SYSTEM_PROMPT, createPlanGenerationPrompt, formatConversationHistory } from '@/lib/ai/prompts';
+import { PLAN_GENERATION_SYSTEM_PROMPT, PLAN_GENERATION_SYSTEM_PROMPT_EN, createPlanGenerationPrompt, formatConversationHistory } from '@/lib/ai/prompts';
 import { ProjectPlan } from '@/lib/types/task';
 import { getAIModel } from '@/lib/ai/config';
 import { NextRequest } from 'next/server';
@@ -26,7 +26,7 @@ import { createClient } from '@/utils/supabase/server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { messages, projectId } = await req.json();
+    const { messages, projectId, language = 'ar' } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return Response.json(
@@ -75,14 +75,73 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Step 0: Create or get chat session and save messages
+    let chatSessionId: number | null = null;
+    
+    try {
+      // Get or create chat session
+      const { data: existingSession } = await supabase
+        .from('chat_session')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingSession) {
+        chatSessionId = existingSession.id;
+      } else {
+        const { data: newSession, error: sessionError } = await supabase
+          .from('chat_session')
+          .insert([{
+            user_id: user.id,
+            project_id: projectId,
+            title: `${project.name || 'Project'} - Planning Session`,
+          }])
+          .select('id')
+          .single();
+
+        if (sessionError) {
+          console.warn('Failed to create chat session:', sessionError);
+        } else {
+          chatSessionId = newSession.id;
+        }
+      }
+
+      // Save all messages to the database if we have a session
+      if (chatSessionId) {
+        const messagesToInsert = messages
+          .filter((m: any) => m.role !== 'system') // Don't save system messages
+          .map((m: any) => ({
+            session_id: chatSessionId,
+            role: m.role,
+            content: m.content,
+          }));
+
+        if (messagesToInsert.length > 0) {
+          const { error: messagesError } = await supabase
+            .from('messages')
+            .insert(messagesToInsert);
+
+          if (messagesError) {
+            console.warn('Failed to save messages:', messagesError);
+          }
+        }
+      }
+    } catch (sessionErr) {
+      console.warn('Error handling chat session:', sessionErr);
+    }
+
     // Format conversation history for the AI
     const conversationHistory = formatConversationHistory(messages);
-    const userPrompt = createPlanGenerationPrompt(conversationHistory);
+    const userPrompt = createPlanGenerationPrompt(conversationHistory, language as 'ar' | 'en');
 
-    // Use configured AI model for plan generation
+    // Use configured AI model for plan generation with language-specific prompt
+    const systemPrompt = language === 'en' ? PLAN_GENERATION_SYSTEM_PROMPT_EN : PLAN_GENERATION_SYSTEM_PROMPT;
     const result = await generateText({
       model: getAIModel(),
-      system: PLAN_GENERATION_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.7,
       maxTokens: 8000, // Allow for comprehensive plan generation
@@ -201,7 +260,7 @@ export async function POST(req: NextRequest) {
       time_estimate: task.timeEstimate,
       tools: JSON.stringify(task.tools),
       hints: JSON.stringify(task.hints),
-      status: 'not_started',
+      status: 'not started',
       phase_id: task.phaseId ? phaseIdMap[task.phaseId] : null,
     }));
 
@@ -249,14 +308,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Step 4: Insert constants as memory items
+    // Step 4: Insert constants as memory items (with reversed content and description)
     if (planData.constants && planData.constants.length > 0) {
       const constantsToInsert = planData.constants.map(constant => ({
         project_id: projectId,
         type: 'constants',
-        label: constant.label,
-        content: constant.description,
-        description: `Category: ${constant.category}`,
+        label: constant.category, // Label is the category (tool, feature, etc.)
+        content: constant.label, // Reversed: original label in content
+        description: constant.description, // Reversed: description in description field
         meta_data: { category: constant.category },
       }));
 
