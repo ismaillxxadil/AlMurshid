@@ -94,15 +94,18 @@ export async function getUserDashboardData() {
     .eq("user_id", user.id);
 
   const achievements =
-    userAchievements?.map((ua) => ({
-      id: ua.achievement?.id ?? ua.achievement_id,
-      name: ua.achievement?.name ?? "Achievement",
-      description: ua.achievement?.description ?? "",
-      icon_slug: ua.achievement?.icon_slug ?? null,
-      xp_reward: ua.achievement?.xp_reward ?? null,
-      active: true,
-      earned_at: ua.earned_at,
-    })) ?? [];
+    userAchievements?.map((ua) => {
+      const achievement = Array.isArray(ua.achievement) ? ua.achievement[0] : ua.achievement;
+      return {
+        id: achievement?.id ?? ua.achievement_id,
+        name: achievement?.name ?? "Achievement",
+        description: achievement?.description ?? "",
+        icon_slug: achievement?.icon_slug ?? null,
+        xp_reward: achievement?.xp_reward ?? null,
+        active: true,
+        earned_at: ua.earned_at,
+      };
+    }) ?? [];
 
   // Fetch user projects
   const { data: projects } = await supabase
