@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -88,6 +90,24 @@
     --color-surface-contrast: #ffffff;
 
     color-scheme: light;
+  }
+
+  body {
+    font-family: "IBM Plex Sans Arabic", sans-serif;
+    background-color: var(--color-bg);
+  }
+
+  .font-mono {
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* Utilities */
+  .border-tech {
+    border: 1px solid var(--color-border);
+  }
+
+  .bg-tech {
+    background-color: var(--color-surface);
   }
 
   /* Neon theme override */
