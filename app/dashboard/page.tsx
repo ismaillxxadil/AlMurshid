@@ -29,21 +29,17 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 type Theme =
   | "dark"
   | "light"
-  | "neon"
-  | "sunset"
-  | "sand"
-  | "sky"
-  | "pink"
-  | "coffee";
+  | "coffee"
+  | "tvgirl"
+  | "sonic"
+  | "pikachu";
 const themeOptions: Theme[] = [
   "dark",
   "light",
-  "neon",
-  "sunset",
-  "sand",
-  "sky",
-  "pink",
   "coffee",
+  "tvgirl",
+  "sonic",
+  "pikachu",
 ];
 
 type Project = {

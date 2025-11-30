@@ -13,12 +13,10 @@ type NavbarProps = {
 const defaultThemeOptions = [
   "dark",
   "light",
-  "neon",
-  "sunset",
-  "sand",
-  "sky",
-  "pink",
   "coffee",
+  "tvgirl",
+  "sonic",
+  "pikachu",
 ];
 
 export const Navbar = ({ themeOptions = defaultThemeOptions }: NavbarProps) => {
