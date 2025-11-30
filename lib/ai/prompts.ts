@@ -69,7 +69,14 @@ Create 3-5 phases: Planning, Design, Development, Testing, Deployment
 
 Constants: List tools/tech with category (tool/feature/technology/methodology)
 Brief: 150-250 word project summary
-AI Prompt: 80-120 word description for external AI
+AI Prompt: A comprehensive 200-300 word prompt that a user can copy and paste to explain this entire project to an external LLM (like ChatGPT, Claude, or any AI assistant). This prompt should include:
+  - Clear project description and main goals
+  - Key features and functionalities
+  - Technologies and tools being used
+  - Target audience or users
+  - Technical requirements and constraints
+  - Project scope and expected outcomes
+  Format it as a standalone, self-contained prompt that provides complete context without requiring additional explanation.
 
 Respond with valid JSON (DO NOT add status field to tasks):
 {
