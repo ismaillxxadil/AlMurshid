@@ -1,183 +1,66 @@
-# AlMurshid 🧭 - AI-Powered Guide
+<div align="center">
+  <br />
+      <img width="500" height="500" alt="image" src="https://github.com/user-attachments/assets/b9bb92f2-1b59-4f33-a05b-7afda1263c57" />
 
-An intelligent AI assistant powered by **DeepSeek V3**, built with modern web technologies and full RTL support for Arabic language.
+    
+  <h3 align="center">ALMurshid (المرشد)</h3>
 
-## 🚀 Tech Stack
-
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + Shadcn/UI (RTL supported)
-- **Backend**: Supabase (Authentication & Database)
-- **AI**: DeepSeek V3 via Vercel AI SDK
-- **Hosting**: Vercel
-
-## 📋 Prerequisites
-
-Before you begin, make sure you have:
-
-- Node.js 18+ installed
-- A Supabase account ([Sign up here](https://supabase.com))
-- A DeepSeek API key ([Get one here](https://platform.deepseek.com))
-
-## 🛠️ Setup Instructions
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-### 2. Configure Environment Variables
-
-Create a `.env.local` file in the root directory:
-
-```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# DeepSeek API Configuration
-OPENAI_API_KEY=your_deepseek_api_key
-```
-
-#### Getting Your Supabase Credentials:
-1. Go to [Supabase Dashboard](https://app.supabase.com)
-2. Create a new project or select existing one
-3. Go to Settings → API
-4. Copy your `Project URL` and `anon/public` key
-
-#### Getting Your DeepSeek API Key:
-1. Visit [DeepSeek Platform](https://platform.deepseek.com)
-2. Sign up or log in
-3. Navigate to API Keys section
-4. Create a new API key
-
-### 3. Run Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see your application.
-
-## 📁 Project Structure
-
-```
-AlMurshid/
-├── app/
-│   ├── api/
-│   │   └── chat/
-│   │       └── route.ts      # DeepSeek AI API endpoint
-│   ├── chat/
-│   │   └── page.tsx          # Chat interface
-│   ├── layout.tsx            # Root layout with RTL support
-│   ├── page.tsx              # Home page
-│   └── globals.css           # Global styles
-├── components/
-│   └── ui/                   # Shadcn UI components
-│       ├── button.tsx
-│       ├── card.tsx
-│       └── input.tsx
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts         # Supabase client (browser)
-│   │   ├── server.ts         # Supabase client (server)
-│   │   └── middleware.ts     # Auth middleware
-│   └── utils.ts              # Utility functions
-├── middleware.ts             # Next.js middleware
-├── tailwind.config.ts        # Tailwind configuration
-├── tsconfig.json             # TypeScript configuration
-└── package.json              # Dependencies
-```
-
-## 🎨 Features
-
-- ✅ Next.js 15 with App Router
-- ✅ TypeScript for type safety
-- ✅ Tailwind CSS with RTL support
-- ✅ Shadcn/UI components
-- ✅ Supabase authentication ready
-- ✅ DeepSeek V3 AI integration
-- ✅ Real-time chat interface
-- ✅ Responsive design
-- ✅ Arabic language support
-
-## 🔧 Available Scripts
-
-```bash
-# Development
-npm run dev          # Start development server
-
-# Production
-npm run build        # Build for production
-npm run start        # Start production server
-
-# Code Quality
-npm run lint         # Run ESLint
-```
-
-## 🌐 Deployment to Vercel
-
-1. Push your code to GitHub
-2. Go to [Vercel Dashboard](https://vercel.com)
-3. Import your repository
-4. Add environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `OPENAI_API_KEY`
-5. Deploy!
-
-Vercel will automatically detect Next.js and configure the build settings.
-
-## 📝 Usage
-
-### Chat with DeepSeek AI
-
-Navigate to `/chat` to start chatting with the AI assistant. The interface supports:
-- Real-time streaming responses
-- RTL layout for Arabic text
-- Message history
-- Clean, modern UI
-
-### Supabase Integration
-
-The Supabase client is configured for:
-- Authentication (ready to implement)
-- Database operations (ready to implement)
-- Real-time subscriptions (ready to implement)
-
-Example usage in your components:
-
-```typescript
-import { createClient } from '@/lib/supabase/client'
-
-const supabase = createClient()
-const { data, error } = await supabase.from('your_table').select()
-```
-
-## 🔐 Security Notes
-
-- Never commit `.env.local` to version control
-- Keep your API keys secure
-- Use Supabase Row Level Security (RLS) for database protection
-- Follow Vercel security best practices
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 🆘 Support
-
-If you encounter any issues:
-1. Check the [Next.js Documentation](https://nextjs.org/docs)
-2. Visit [Supabase Documentation](https://supabase.com/docs)
-3. Review [DeepSeek API Documentation](https://platform.deepseek.com/docs)
-4. Open an issue in this repository
+  <p align="center">
+    The Gamified AI Project Planner for Arab Programmers
+    <br />
+    <br />
+    <a href="https://nextjs.org">
+      <img src="https://img.shields.io/badge/Next.js_15-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js 15" />
+    </a>
+    <a href="https://supabase.com">
+      <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+    </a>
+    <a href="https://tailwindcss.com">
+      <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+    </a>
+    <a href="https://www.typescriptlang.org/">
+      <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+    </a>
+  </p>
+</div>
 
 ---
 
-Built with ❤️ using the latest web technologies
+## 💡 About The Project
+
+Project planning is often tedious, and many developers get stuck in "tutorial hell" or lose motivation halfway through a build. **ALMurshid** (The Guide) solves this by combining **Generative AI** with **Gamification**.
+
+It transforms the software development lifecycle into an RPG (Role-Playing Game). You don't just complete tasks; you earn XP, level up your profile, maintain daily streaks, and unlock unique badges based on your coding habits.
+
+## ✨ Key Features
+
+### 🤖 AI-Powered Architect
+- **Smart Generation:** Input a simple idea, and the AI generates a comprehensive development plan with Phases, Tasks, and Complexity estimates.
+- **Context Awareness:** Generates tasks specifically tailored to your selected tech stack.
+
+### 🎮 Gamification Engine
+- **XP System:** Earn Experience Points for every task completed based on difficulty.
+- **Dynamic Badges:** Unlock achievements automatically via Database Triggers:
+  - 🦉 **Night Owl:** For committing code between 2 AM - 5 AM.
+  - 🛡️ **Defender:** For maintaining a 7-day activity streak.
+  - 🏗️ **Architect:** For creating multiple comprehensive project plans.
+- **Leaderboard:** Track your progress against your own past performance.
+
+ 
+---
+
+## 📸 Screenshots
+
+| **Command Center (Dashboard)** | **Project Tasks Board** |
+|:---:|:---:|
+| <img src="https://github.com/user-attachments/assets/c1ef40d3-adc8-4f1b-aad6-a3d44a982777" width="450" alt="Dashboard" /> | <img src="https://github.com/user-attachments/assets/5056fc44-71f6-4e8f-a811-dc4580294d86" width="450" alt="Tasks" /> |
+| *Track XP, Streaks, and Badges* | *Manage AI-generated tasks* |
+
+<br />
+
+| **AI Architect Chat** | **Project Memory** |
+|:---:|:---:|
+| <img src="https://github.com/user-attachments/assets/1a87d679-7697-4f85-8fdf-ea7ca0b03b2e" width="450" alt="AI Chat" /> | <img src="https://github.com/user-attachments/assets/323cd52f-08c5-435a-9691-67e6e522f7e0" width="450" alt="Project Memory" /> |
+| *Build projects with AI* | *Saved context and notes* |
+
+---
