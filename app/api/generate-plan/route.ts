@@ -284,6 +284,7 @@ export async function POST(req: NextRequest) {
     
     const startPrId = existingTasks && existingTasks.length > 0 ? (existingTasks[0].pr_id + 1) : 1;
     
+    // Map tasks with proper status enum value (always not_started for new tasks)
     const tasksToInsert = planData.tasks.map((task, index) => ({
       project_id: projectId,
       pr_id: startPrId + index,
@@ -294,9 +295,14 @@ export async function POST(req: NextRequest) {
       time_estimate: task.timeEstimate,
       tools: JSON.stringify(task.tools),
       hints: JSON.stringify(task.hints),
-      status: 'not started',
+      status: 'not_started' as const, // Force correct enum value
       phase_id: task.phaseId ? phaseIdMap[task.phaseId] : null,
     }));
+
+    // Log first task to debug status issue
+    if (tasksToInsert.length > 0) {
+      console.log('First task to insert:', JSON.stringify(tasksToInsert[0], null, 2));
+    }
 
     const { data: insertedTasks, error: tasksError } = await supabase
       .from('tasks')

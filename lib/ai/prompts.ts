@@ -54,7 +54,7 @@ Remember: You ask questions and suggest ideas/tools, but NO task lists. The plan
  */
 export const PLAN_GENERATION_SYSTEM_PROMPT = `Create a project plan with tasks, phases, dependencies.
 
-For each task provide:
+For each task provide (DO NOT include status field):
 - name: Clear action (3-5 words)
 - description: What to do (1 sentence)
 - xp: 10-500 based on complexity (easy: 10-50, medium: 50-150, hard: 150-300, expert: 300-500)
@@ -71,7 +71,7 @@ Constants: List tools/tech with category (tool/feature/technology/methodology)
 Brief: 150-250 word project summary
 AI Prompt: 80-120 word description for external AI
 
-Respond with valid JSON:
+Respond with valid JSON (DO NOT add status field to tasks):
 {
   "projectName": "string",
   "projectDescription": "string",
