@@ -77,7 +77,7 @@ export default function ProjectAiPage() {
   }, [messages]);
 
   return (
-    <div className="flex-1 flex flex-col gap-4">
+    <div className="flex-1 flex flex-col gap-4" dir="ltr">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">Al-Murshid • AI Assistant</div>
@@ -137,7 +137,7 @@ export default function ProjectAiPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)]">
+        <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)]" dir="ltr">
           {loading ? (
             <div className="text-center text-[var(--color-ink-soft)] py-8">
               Loading project data...

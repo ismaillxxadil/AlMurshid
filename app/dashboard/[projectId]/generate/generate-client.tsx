@@ -119,7 +119,7 @@ The more detailed the information, the better and more accurate the plan will be
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] relative overflow-hidden" dir="ltr">
       <style jsx>{`
         @keyframes gridPulse {
           0%, 100% { opacity: 0.1; }
@@ -251,7 +251,7 @@ The more detailed the information, the better and more accurate the plan will be
 
         {/* Chat Messages - Gamified */}
         <div className="flex-1 overflow-hidden relative" style={{ minHeight: '50vh' }}>
-          <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)]">
+          <div className="h-full overflow-y-auto px-2 py-4 space-y-4 bg-[var(--color-bg)]" dir="ltr">
             {messages.filter(m => m.role !== 'system').map((m, index) => (
               <div 
                 key={m.id} 
