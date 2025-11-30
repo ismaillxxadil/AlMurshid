@@ -9,7 +9,6 @@ import {
   Edit2,
   Trash2,
   LayoutGrid,
-  ChevronDown,
   AlertCircle,
   Flame,
   Trophy,
@@ -25,6 +24,7 @@ import { getUserDashboardData, signOut } from "../actions/auth";
 import { addProject } from "../actions/projects";
 import Image from "next/image";
 import { Logo } from "@/components/Logo";
+import { ThemeSelector } from "@/components/ThemeSelector";
 
 type Theme =
   | "dark"
@@ -335,22 +335,12 @@ export default function DashboardPage() {
 
             <div className="h-6 w-px bg-[var(--color-border)]"></div>
 
-            <div className="hidden md:flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
-              <div className="relative group">
-                <select
-                  value={theme}
-                  onChange={(e) => setTheme(e.target.value as Theme)}
-                  className="appearance-none bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-ink)] px-3 py-1 pr-8 focus:outline-none focus:border-[var(--color-accent)] rounded-none cursor-pointer font-bold"
-                >
-                  {themeOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-ink-soft)]" />
-              </div>
-            </div>
+            <ThemeSelector
+              theme={theme}
+              options={themeOptions}
+              onChange={(value) => setTheme(value as Theme)}
+              className="hidden md:block"
+            />
 
             <div className="h-6 w-px bg-[var(--color-border)]"></div>
 
