@@ -20,7 +20,6 @@ export default function GeneratePageClient({ projectId, projectName, userLevel }
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [language, setLanguage] = useState<'ar' | 'en' | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,19 +38,17 @@ export default function GeneratePageClient({ projectId, projectName, userLevel }
     setIsMounted(true);
   }, []);
 
-  const getInitialMessage = (lang: 'ar' | 'en') => {
-    if (lang === 'ar') {
-      return `مرحباً! أنا المرشد، مساعدك في تخطيط المشروع "${projectName}". دعني أساعدك في فهم مشروعك بشكل كامل.
-
-أخبرني عن:
-• ما هي فكرة المشروع والهدف منه؟
-• ما هي التقنيات أو الأدوات التي تخطط لاستخدامها؟
-• ما هي المدة الزمنية المستهدفة لإنجاز المشروع؟
-• هل هناك متطلبات أو قيود خاصة يجب مراعاتها؟
-
-كلما كانت المعلومات أكثر تفصيلاً، كلما كانت الخطة أفضل وأدق! 🎯`;
-    } else {
-      return `Hello! I'm Al-Murshid, your assistant for planning the "${projectName}" project. Let me help you understand your project completely.
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
+    api: '/api/chat',
+    body: {
+      projectId,
+      mode: 'generate',
+      language: 'en',
+    },
+    initialMessages: [{
+      id: 'system-1',
+      role: 'assistant' as const,
+      content: `Hello! I'm Al-Murshid, your assistant for planning the "${projectName}" project. Let me help you understand your project completely.
 
 Tell me about:
 • What is the project idea and its goal?
@@ -59,35 +56,16 @@ Tell me about:
 • What is the target timeline for completing the project?
 • Are there any special requirements or constraints to consider?
 
-The more detailed the information, the better and more accurate the plan will be! 🎯`;
-    }
-  };
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
-    api: '/api/chat',
-    body: {
-      projectId,
-      language,
-    },
-    initialMessages: [],
+The more detailed the information, the better and more accurate the plan will be! 🎯`
+    }],
     onError: (error) => {
       console.error('Chat error:', error);
-      setError('حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.');
+      setError('Connection error. Please try again.');
     }
   });
 
   // Check if AI is ready to generate
   const canGenerate = isReadyToGenerate(messages as any[]);
-
-  // Handle language selection
-  const handleLanguageSelect = (lang: 'ar' | 'en') => {
-    setLanguage(lang);
-    setMessages([{
-      id: 'system-1',
-      role: 'assistant' as const,
-      content: getInitialMessage(lang)
-    }]);
-  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -101,6 +79,8 @@ The more detailed the information, the better and more accurate the plan will be
     setError(null);
     
     try {
+      // Send all conversation messages to generate-plan API
+      // API will: 1) Format conversation 2) Call AI to create structured plan 3) Save to DB
       const response = await fetch('/api/generate-plan', {
         method: 'POST',
         headers: {
@@ -112,19 +92,19 @@ The more detailed the information, the better and more accurate the plan will be
             content: m.content
           })),
           projectId,
-          language,
+          language: 'en',
         }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || result.details || 'فشل في توليد الخطة');
+        throw new Error(result.error || result.details || 'Failed to generate plan');
       }
       
       if (result.success) {
         setGenerationComplete(true);
-        // Redirect to project dashboard after a brief delay
+        // Plan created successfully - redirect to project dashboard
         setTimeout(() => {
           router.push(`/dashboard/${projectId}`);
           router.refresh();
@@ -132,14 +112,14 @@ The more detailed the information, the better and more accurate the plan will be
       }
     } catch (error) {
       console.error('Error generating plan:', error);
-      setError(error instanceof Error ? error.message : 'فشل في توليد الخطة');
+      setError(error instanceof Error ? error.message : 'Failed to generate plan');
     } finally {
       setIsGenerating(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] relative overflow-hidden" dir={language === 'en' ? 'ltr' : 'rtl'}>
+    <div className="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-ink)] relative overflow-hidden">
       <style jsx>{`
         @keyframes gridPulse {
           0%, 100% { opacity: 0.1; }
@@ -212,53 +192,7 @@ The more detailed the information, the better and more accurate the plan will be
         ))}
       </div>
 
-      {/* Language Selection Modal - Gamified */}
-      {!language && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--color-surface)] border-2 border-[var(--color-accent)]/50 p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
-            {/* Glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-accent)]/5 to-transparent pointer-events-none"></div>
-            
-            <div className="text-center mb-6 relative">
-              <div className="inline-flex items-center gap-2 mb-3">
-                <Sparkles className="w-6 h-6 text-[var(--color-accent)] animate-pulse" />
-                <Trophy className="w-8 h-8 text-[var(--color-accent)]" />
-                <Sparkles className="w-6 h-6 text-[var(--color-accent)] animate-pulse" />
-              </div>
-              <div className="text-2xl font-bold mb-2 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-ink)] bg-clip-text text-transparent">
-                اختر اللغة / Choose Language
-              </div>
-              <div className="text-sm text-[var(--color-ink-soft)] font-mono">
-                🎮 BEGIN YOUR QUEST • ابدأ مهمتك
-              </div>
-            </div>
-            <div className="flex flex-col gap-3 relative">
-              <button
-                onClick={() => handleLanguageSelect('ar')}
-                className="group relative w-full px-6 py-5 text-lg font-bold bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-strong)] transition-all border-2 border-[var(--color-accent)] hover:border-[var(--color-accent-strong)] overflow-hidden hover:scale-105 hover:shadow-xl"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
-                <div className="relative flex items-center justify-center gap-3">
-                  <Star className="w-5 h-5" />
-                  <span>🇸🇦 العربية (Arabic)</span>
-                  <Star className="w-5 h-5" />
-                </div>
-              </button>
-              <button
-                onClick={() => handleLanguageSelect('en')}
-                className="group relative w-full px-6 py-5 text-lg font-bold bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-strong)] transition-all border-2 border-[var(--color-accent)] hover:border-[var(--color-accent-strong)] overflow-hidden hover:scale-105 hover:shadow-xl"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
-                <div className="relative flex items-center justify-center gap-3">
-                  <Star className="w-5 h-5" />
-                  <span>🇬🇧 English</span>
-                  <Star className="w-5 h-5" />
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="flex-1 flex flex-col gap-4 px-6 py-8 max-w-5xl mx-auto w-full relative z-10">
         {/* Header - Gamified */}
@@ -270,7 +204,7 @@ The more detailed the information, the better and more accurate the plan will be
               <div className="flex items-center gap-2 mb-2">
                 <Target className="w-4 h-4 text-[var(--color-accent)] animate-pulse" />
                 <div className="text-xs font-mono uppercase tracking-widest text-[var(--color-accent)] font-bold">
-                  {language === 'ar' ? '🎯 توليد أولي' : '🎯 INITIAL GENERATION'}
+                  🎯 INITIAL GENERATION
                 </div>
                 <div className="px-2 py-0.5 bg-[var(--color-accent)]/20 border border-[var(--color-accent)]/40 text-[10px] font-mono text-[var(--color-accent)]">
                   LEVEL {userLevel}
@@ -284,10 +218,10 @@ The more detailed the information, the better and more accurate the plan will be
               <Zap className="w-4 h-4 text-[var(--color-accent)]" />
               <div>
                 <div className="font-bold text-[var(--color-accent)]">
-                  {language === 'ar' ? 'خطوة واحدة' : 'ONE TIME'}
+                  ONE TIME
                 </div>
                 <div className="text-[10px]">
-                  {language === 'ar' ? 'لمرة واحدة فقط' : 'SINGLE USE'}
+                  SINGLE USE
                 </div>
               </div>
             </div>
@@ -305,12 +239,10 @@ The more detailed the information, the better and more accurate the plan will be
               <div className="flex-1">
                 <div className="font-bold text-[var(--color-accent)] mb-2 flex items-center gap-2 text-base">
                   <Star className="w-4 h-4" />
-                  {language === 'ar' ? 'تحدث مع المرشد لبناء الخطة' : 'Talk to Al-Murshid to Build Your Plan'}
+                  Talk to Al-Murshid to Build Your Plan
                 </div>
                 <div className="text-[var(--color-ink-soft)] leading-relaxed">
-                  {language === 'ar' 
-                    ? 'شارك تفاصيل مشروعك، والتقنيات المطلوبة، والأهداف المرجوة. سيقوم المرشد بتحليل المحادثة وتوليد خطة شاملة بمهام مفصلة ومراحل واضحة.'
-                    : 'Share your project details, required technologies, and desired goals. Al-Murshid will analyze the conversation and generate a comprehensive plan with detailed tasks and clear phases.'}
+                  Share your project details, required technologies, and desired goals. Al-Murshid will analyze the conversation and generate a comprehensive plan with detailed tasks and clear phases.
                 </div>
               </div>
             </div>
@@ -342,12 +274,12 @@ The more detailed the information, the better and more accurate the plan will be
                     {m.role === 'user' ? (
                       <>
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                        <span>{language === 'ar' ? '👤 أنت' : '👤 YOU'}</span>
+                        <span>👤 YOU</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-3 h-3" />
-                        <span>{language === 'ar' ? '🤖 المرشد' : '🤖 AL-MURSHID'}</span>
+                        <span>🤖 AL-MURSHID</span>
                       </>
                     )}
                   </div>
@@ -387,7 +319,7 @@ The more detailed the information, the better and more accurate the plan will be
                 <div className="max-w-3xl px-5 py-4 bg-[var(--color-surface)] border-2 border-[var(--color-accent)]/50 text-[var(--color-ink)] shadow-lg">
                   <div className="flex items-center gap-2 text-[10px] uppercase font-mono tracking-widest text-[var(--color-accent)] mb-2 font-bold">
                     <Sparkles className="w-3 h-3 animate-pulse" />
-                    <span>{language === 'ar' ? '🤖 المرشد' : '🤖 AL-MURSHID'}</span>
+                    <span>🤖 AL-MURSHID</span>
                   </div>
                   <div className="text-sm leading-relaxed flex items-center gap-2">
                     <Zap className="w-4 h-4 text-[var(--color-accent)] animate-pulse" />
@@ -412,7 +344,7 @@ The more detailed the information, the better and more accurate the plan will be
             <div className="flex-1">
               <div className="font-bold text-red-500 mb-1 flex items-center gap-2">
                 <Zap className="w-4 h-4" />
-                {language === 'ar' ? 'حدث خطأ' : 'ERROR OCCURRED'}
+                ERROR OCCURRED
               </div>
               <div className="text-[var(--color-ink-soft)]">{error}</div>
             </div>
@@ -440,7 +372,7 @@ The more detailed the information, the better and more accurate the plan will be
                   <div className="relative flex items-center gap-3">
                     <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span className="font-mono">
-                      {language === 'ar' ? 'جاري التوليد... قد يستغرق دقيقة' : 'GENERATING... MAY TAKE A MINUTE'}
+                      GENERATING... MAY TAKE A MINUTE
                     </span>
                   </div>
                 </>
@@ -448,7 +380,7 @@ The more detailed the information, the better and more accurate the plan will be
                 <>
                   <Trophy className="w-7 h-7 animate-bounce" />
                   <span className="relative z-10 font-mono tracking-wide">
-                    {language === 'ar' ? '✨ توليد الخطة الكاملة الآن' : '✨ GENERATE FULL PLAN NOW'}
+                    ✨ GENERATE FULL PLAN NOW
                   </span>
                   <Sparkles className="w-7 h-7 animate-pulse" />
                 </>
@@ -484,10 +416,10 @@ The more detailed the information, the better and more accurate the plan will be
               </div>
               <div>
                 <div className="font-mono mb-1">
-                  {language === 'ar' ? '✅ تم توليد الخطة بنجاح!' : '✅ PLAN GENERATED SUCCESSFULLY!'}
+                  ✅ PLAN GENERATED SUCCESSFULLY!
                 </div>
                 <div className="text-sm text-green-600 font-normal">
-                  {language === 'ar' ? 'جاري التحويل إلى لوحة المشروع...' : 'Redirecting to project dashboard...'}
+                  Redirecting to project dashboard...
                 </div>
               </div>
             </div>
@@ -505,9 +437,7 @@ The more detailed the information, the better and more accurate the plan will be
                 onChange={handleInputChange}
                 disabled={isLoading || isGenerating || generationComplete}
                 className="w-full px-5 py-4 bg-[var(--color-bg)] border-2 border-[var(--color-border)] text-[var(--color-ink)] placeholder-[var(--color-ink-soft)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 font-mono transition-all group-hover:border-[var(--color-accent)]/30"
-                placeholder={language === 'ar' 
-                  ? "اكتب رسالتك هنا... (أخبر المرشد عن أفكارك ومتطلباتك)"
-                  : "Type your message here... (Tell Al-Murshid about your ideas and requirements)"}
+                placeholder="Type your message here... (Tell Al-Murshid about your ideas and requirements)"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <Zap className="w-4 h-4 text-[var(--color-accent)]/30 group-hover:text-[var(--color-accent)] transition-colors" />
@@ -520,7 +450,7 @@ The more detailed the information, the better and more accurate the plan will be
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
               <Send className="w-5 h-5 relative z-10" />
-              <span className="relative z-10">{language === 'ar' ? 'إرسال' : 'SEND'}</span>
+              <span className="relative z-10">SEND</span>
             </button>
           </form>
 
@@ -530,9 +460,7 @@ The more detailed the information, the better and more accurate the plan will be
               <div className="relative z-10 flex items-center justify-center gap-2">
                 <Trophy className="w-4 h-4 animate-bounce" />
                 <span>
-                  {language === 'ar' 
-                    ? '✅ تم جمع معلومات كافية • المرشد جاهز لتوليد الخطة الكاملة'
-                    : '✅ SUFFICIENT INFO COLLECTED • AL-MURSHID READY TO GENERATE'}
+                  ✅ SUFFICIENT INFO COLLECTED • AL-MURSHID READY TO GENERATE
                 </span>
                 <Star className="w-4 h-4 animate-pulse" />
               </div>

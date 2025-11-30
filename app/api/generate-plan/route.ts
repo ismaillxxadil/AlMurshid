@@ -8,21 +8,29 @@ import { createClient } from '@/utils/supabase/server';
 /**
  * POST /api/generate-plan
  * 
- * Generates a comprehensive project plan from conversation history.
- * Takes the chat messages and converts them into a full project structure with:
- * - Tasks with phases and predecessors
- * - Project brief and AI prompt
- * - System constants and fragments
- * 
- * Saves everything to the database and marks the project as generated.
+ * DATA FLOW:
+ * 1. Receives conversation messages from generate page
+ * 2. Validates user authentication and project ownership
+ * 3. Checks project hasn't been generated yet
+ * 4. Saves conversation to chat_session table
+ * 5. Formats conversation history (last 10 messages)
+ * 6. Calls AI with PLAN_GENERATION_SYSTEM_PROMPT to create structured JSON
+ * 7. Parses JSON response (phases, tasks, constants, fragments)
+ * 8. Inserts phases with pr_id tracking
+ * 9. Inserts tasks with pr_id tracking and phase references
+ * 10. Creates task dependencies
+ * 11. Saves constants and fragments to memory table
+ * 12. Updates project (brief, prompt, generate=true)
+ * 13. Returns success response
  * 
  * Request body:
  * {
  *   messages: Array<{ role: 'user' | 'assistant' | 'system', content: string }>,
- *   projectId: number
+ *   projectId: number,
+ *   language: 'ar' | 'en'
  * }
  * 
- * Returns: ProjectPlan object with structured tasks
+ * Returns: { success: true, plan: ProjectPlan } or { error: string }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -133,8 +141,10 @@ export async function POST(req: NextRequest) {
       console.warn('Error handling chat session:', sessionErr);
     }
 
-    // Format conversation history for the AI
-    const conversationHistory = formatConversationHistory(messages);
+    // Format conversation history for the AI (only last 10 messages to reduce tokens)
+    // Converts [{role, content}] -> "User: ...\n\nAssistant: ..." format
+    const recentMessages = messages.slice(-10);
+    const conversationHistory = formatConversationHistory(recentMessages);
     const userPrompt = createPlanGenerationPrompt(conversationHistory, language as 'ar' | 'en');
 
     // Use configured AI model for plan generation with language-specific prompt
@@ -144,7 +154,7 @@ export async function POST(req: NextRequest) {
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.7,
-      maxTokens: 8000, // Allow for comprehensive plan generation
+      maxTokens: 6000, // Increased for more comprehensive plans
     });
 
     // Parse the AI response as JSON
@@ -218,13 +228,25 @@ export async function POST(req: NextRequest) {
       throw new Error(`Failed to update project: ${updateError.message}`);
     }
 
-    // Step 1: Insert phases into phases table
+    // Step 1: Insert phases into phases table with pr_id tracking
+    // pr_id = unique phase ID within this project (prevents duplicates)
     const phaseIdMap: Record<string, number> = {}; // AI ID -> DB ID mapping
     let insertedPhases: any[] = [];
     
     if (planData.phases && planData.phases.length > 0) {
-      const phasesToInsert = planData.phases.map(phase => ({
+      // Get the max pr_id for this project to avoid duplicates
+      const { data: existingPhases } = await supabase
+        .from('phases')
+        .select('pr_id')
+        .eq('project_id', projectId)
+        .order('pr_id', { ascending: false })
+        .limit(1);
+      
+      const startPrId = existingPhases && existingPhases.length > 0 ? (existingPhases[0].pr_id + 1) : 1;
+      
+      const phasesToInsert = planData.phases.map((phase, index) => ({
         project_id: projectId,
+        pr_id: startPrId + index,
         name: phase.name,
         description: phase.description,
         order_index: phase.order,
@@ -248,11 +270,23 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Step 2: Insert tasks into tasks table
+    // Step 2: Insert tasks into tasks table with pr_id tracking
+    // pr_id = unique task ID within this project (prevents duplicates)
     const taskIdMap: Record<string, number> = {}; // AI ID -> DB ID mapping
     
-    const tasksToInsert = planData.tasks.map(task => ({
+    // Get the max pr_id for this project to avoid duplicates
+    const { data: existingTasks } = await supabase
+      .from('tasks')
+      .select('pr_id')
+      .eq('project_id', projectId)
+      .order('pr_id', { ascending: false })
+      .limit(1);
+    
+    const startPrId = existingTasks && existingTasks.length > 0 ? (existingTasks[0].pr_id + 1) : 1;
+    
+    const tasksToInsert = planData.tasks.map((task, index) => ({
       project_id: projectId,
+      pr_id: startPrId + index,
       name: task.name,
       description: task.description,
       xp: task.xp,

@@ -13,14 +13,28 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/chat
  * 
- * Conversational endpoint for both project planning and project management.
- * - For initial planning (generate page): Uses PROJECT_PLANNING_SYSTEM_PROMPT
- * - For project management (ai page): Uses ALMURSHID_ASSISTANT_PROMPT with fresh data from DB
+ * DATA FLOW - Two distinct modes:
+ * 
+ * MODE 1: GENERATE (Information Gathering)
+ * - Used by: Generate page (/dashboard/[projectId]/generate)
+ * - Prompt: PROJECT_PLANNING_SYSTEM_PROMPT
+ * - Purpose: Ask questions, gather project info, NO task creation
+ * - Tools: NONE
+ * - Flow: User describes project -> AI asks clarifying questions -> When enough info collected,
+ *         AI says "✅ Click Generate Plan" -> User clicks button -> Triggers /api/generate-plan
+ * 
+ * MODE 2: ASSISTANT (Task Management)
+ * - Used by: AI page (/dashboard/[projectId]/ai)
+ * - Prompt: ALMURSHID_ASSISTANT_PROMPT
+ * - Purpose: Manage existing project tasks, phases, dependencies
+ * - Tools: 14 tools (getTasks, createTask, updateTask, etc.)
+ * - Flow: User requests task changes -> AI uses tools to modify database -> Returns confirmation
  * 
  * Request body:
  * {
  *   messages: Array<{ role: 'user' | 'assistant' | 'system', content: string }>,
  *   projectId?: number,
+ *   mode: 'generate' | 'assistant',
  *   language?: 'ar' | 'en'
  * }
  * 
@@ -29,18 +43,19 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, projectId, language } = body;
+    const { messages, projectId, mode, language } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response('Invalid request: messages array required', { status: 400 });
     }
 
-    // Determine which system prompt to use
+    // Determine which system prompt to use based on mode
     let systemPrompt = PROJECT_PLANNING_SYSTEM_PROMPT;
     let enhancedMessages = messages;
+    let useTools = false;
 
-    // If projectId is provided, fetch fresh data from Supabase and use المرشد assistant
-    if (projectId) {
+    // Only use ALMURSHID_ASSISTANT_PROMPT with tools when in 'assistant' mode (ai page)
+    if (projectId && mode === 'assistant') {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -75,67 +90,7 @@ export async function POST(req: NextRequest) {
 
       systemPrompt = ALMURSHID_ASSISTANT_PROMPT;
       
-      // Build comprehensive context info from fresh database data
-      const context = { project, tasks: tasks || [], phases: phases || [], dependencies: dependencies || [], memories: memories || [] };
-      
-      // Group tasks by phase
-      const tasksByPhase: Record<number, any[]> = {};
-      const tasksWithoutPhase: any[] = [];
-      
-      tasks?.forEach((task: any) => {
-        if (task.phase_id) {
-          if (!tasksByPhase[task.phase_id]) {
-            tasksByPhase[task.phase_id] = [];
-          }
-          tasksByPhase[task.phase_id].push(task);
-        } else {
-          tasksWithoutPhase.push(task);
-        }
-      });
-
-      // Build phase info
-      let phasesInfo = '';
-      phases?.forEach((phase: any) => {
-        const phaseTasks = tasksByPhase[phase.id] || [];
-        const completedCount = phaseTasks.filter((t: any) => t.status === 'completed').length;
-        const totalXP = phaseTasks.reduce((sum: number, t: any) => sum + (t.xp || 0), 0);
-        
-        phasesInfo += `\n📍 **${phase.name}** (ترتيب: ${phase.order_index})\n`;
-        phasesInfo += `   ${phase.description}\n`;
-        phasesInfo += `   المهام: ${phaseTasks.length} (مكتمل: ${completedCount}، XP: ${totalXP})\n`;
-        
-        if (phaseTasks.length > 0) {
-          phaseTasks.slice(0, 3).forEach((t: any) => {
-            phasesInfo += `   - ${t.name} [${t.difficulty}] - ${t.status} (${t.xp} XP)\n`;
-          });
-          if (phaseTasks.length > 3) {
-            phasesInfo += `   ... و ${phaseTasks.length - 3} مهمة أخرى\n`;
-          }
-        }
-      });
-
-      // Build dependencies info
-      const dependenciesInfo = dependencies && dependencies.length > 0
-        ? `\n🔗 **التبعيات**: ${dependencies.length} علاقة تبعية بين المهام\n`
-        : '';
-
-      // Build constants info
-      const constants = memories?.filter((m: any) => m.type === 'constants') || [];
-      const constantsInfo = constants.length > 0
-        ? `\n🔧 **الثوابت والأدوات** (${constants.length}):\n${constants.slice(0, 5).map((m: any) => 
-            `- ${m.label}: ${m.content}`
-          ).join('\n')}\n${constants.length > 5 ? `... و ${constants.length - 5} أخرى\n` : ''}`
-        : '';
-
-      // Build fragments info
-      const fragments = memories?.filter((m: any) => m.type === 'fragments') || [];
-      const fragmentsInfo = fragments.length > 0
-        ? `\n💡 **الشذرات والأفكار** (${fragments.length}):\n${fragments.slice(0, 3).map((m: any) => 
-            `- ${m.label}`
-          ).join('\n')}\n${fragments.length > 3 ? `... و ${fragments.length - 3} أخرى\n` : ''}`
-        : '';
-
-      // Build task summary
+      // Build concise context from fresh database data
       const totalTasks = tasks?.length || 0;
       const completedTasks = tasks?.filter((t: any) => t.status === 'completed').length || 0;
       const inProgressTasks = tasks?.filter((t: any) => t.status === 'in_progress').length || 0;
@@ -144,35 +99,34 @@ export async function POST(req: NextRequest) {
       const earnedXP = tasks?.filter((t: any) => t.status === 'completed')
         .reduce((sum: number, t: any) => sum + (t.xp || 0), 0) || 0;
 
+      // Build concise phase info (top 3 phases with task counts only)
+      let phasesInfo = '';
+      phases?.slice(0, 3).forEach((phase: any) => {
+        const phaseTasks = tasks?.filter((t: any) => t.phase_id === phase.id) || [];
+        phasesInfo += `\n- ${phase.name}: ${phaseTasks.length} tasks`;
+      });
+      if (phases && phases.length > 3) {
+        phasesInfo += `\n- ...and ${phases.length - 3} more phases`;
+      }
+
       const contextInfo = `
-معلومات المشروع الحالية:
+Project Info:
+ID: ${projectId} | Name: ${project?.name || 'N/A'}
 
-🆔 **معرف المشروع (Project ID)**: ${projectId}
-📁 **اسم المشروع**: ${project?.name || 'غير محدد'}
-📝 **الوصف**: ${project?.description || 'لا يوجد وصف'}
-${project?.breif ? `📄 **الملخص**: متوفر (${project.breif.length} حرف)\n` : ''}
-${project?.prompt ? `🤖 **موجه AI**: متوفر\n` : ''}
+Stats:
+Tasks: ${totalTasks} (✅${completedTasks} ⏳${inProgressTasks} 🔒${blockedTasks})
+XP: ${earnedXP}/${totalXP} | Phases: ${phases?.length || 0} | Deps: ${dependencies?.length || 0}
+${phasesInfo}
 
-⚠️ **مهم**: استخدم معرف المشروع ${projectId} في جميع عمليات الأدوات (createTask, updateTask, إلخ)
-
-📊 **إحصائيات المهام**:
-- الإجمالي: ${totalTasks} مهمة
-- مكتمل: ${completedTasks} ✅
-- قيد التنفيذ: ${inProgressTasks} ⏳
-- محظور: ${blockedTasks} 🔒
-- XP المكتسب: ${earnedXP} / ${totalXP}
-
-🎯 **المراحل** (${phases?.length || 0} مرحلة):${phasesInfo}
-${tasksWithoutPhase.length > 0 ? `\n⚠️ مهام بدون مرحلة: ${tasksWithoutPhase.length}\n` : ''}
-${dependenciesInfo}${constantsInfo}${fragmentsInfo}
-
-استخدم هذه المعلومات للإجابة على أسئلة المستخدم وتقديم اقتراحات مفيدة ومحددة.
+Use projectId ${projectId} in all tool operations.
 `;
 
       enhancedMessages = [
         { role: 'system', content: contextInfo },
         ...messages
       ];
+      
+      useTools = true;
     }
 
     // Use configured AI model for cost-effective conversational planning
@@ -181,9 +135,9 @@ ${dependenciesInfo}${constantsInfo}${fragmentsInfo}
       system: systemPrompt,
       messages: enhancedMessages,
       temperature: 0.7,
-      maxTokens: projectId ? 2000 : 1000,
-      tools: projectId ? alMurshidTools : undefined,
-      toolChoice: projectId ? 'auto' : undefined,
+      maxTokens: mode === 'assistant' ? 1000 : 2000, // More tokens for generate conversations
+      tools: useTools ? alMurshidTools : undefined,
+      toolChoice: useTools ? 'auto' : undefined,
       maxSteps: 5,
     });
 
