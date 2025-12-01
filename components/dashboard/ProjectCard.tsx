@@ -8,6 +8,7 @@ type Project = {
   id: string;
   name: string;
   status: "Active" | "Planning" | "Paused" | "Review";
+  password?: string | null;
   eta: string;
   tasks: number;
   progress: number;
@@ -18,9 +19,10 @@ interface ProjectCardProps {
   project: Project;
   onEdit: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  onShare?: (project: Project) => void;
 }
 
-export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
+export function ProjectCard({ project, onEdit, onDelete, onShare }: ProjectCardProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
@@ -54,6 +56,13 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
     e.stopPropagation();
     if (confirm("Delete?")) {
       onDelete(project.id);
+    }
+  };
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShare) {
+      onShare(project);
     }
   };
 
@@ -144,6 +153,15 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
 
           {/* Action Buttons */}
           <div className="flex gap-1">
+            {onShare && (
+              <button
+                onClick={handleShareClick}
+                className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors border border-transparent hover:border-[var(--color-border)]"
+                title="Share Project"
+              >
+                🔗
+              </button>
+            )}
             <button
               onClick={handleEditClick}
               className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors border border-transparent hover:border-[var(--color-border)]"
