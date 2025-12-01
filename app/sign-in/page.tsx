@@ -25,38 +25,30 @@ export default function SignInPage() {
   type Theme =
     | "dark"
     | "light"
-    | "neon"
-    | "sunset"
-    | "sand"
-    | "sky"
-    | "pink"
-    | "coffee";
+    | "coffee"
+    | "tvgirl"
+    | "sonic"
+    | "pikachu";
   const themeOptions: Theme[] = [
     "dark",
     "light",
-    "neon",
-    "sunset",
-    "sand",
-    "sky",
-    "pink",
     "coffee",
+    "tvgirl",
+    "sonic",
+    "pikachu",
   ];
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem('almurshed-theme');
+    return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
+  });
   const [state, formAction, pending] = useActionState(signIn, {
     error: "",
     values: { email: "" },
   });
   const supabaseRedirect = "http://localhost:3000/api/auth/callback?next=/dashboard";
 
-  useEffect(() => {
-    const stored =
-      typeof window !== "undefined"
-        ? localStorage.getItem("almurshed-theme")
-        : null;
-    if (stored && themeOptions.includes(stored as Theme)) {
-      setTheme(stored as Theme);
-    }
-  }, []);
+
 
   useEffect(() => {
     if (typeof document !== "undefined") {

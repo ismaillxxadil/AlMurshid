@@ -13,27 +13,18 @@ type NavbarProps = {
 const defaultThemeOptions = [
   "dark",
   "light",
-  "neon",
-  "sunset",
-  "sand",
-  "sky",
-  "pink",
   "coffee",
+  "tvgirl",
+  "sonic",
+  "pikachu",
 ];
 
 export const Navbar = ({ themeOptions = defaultThemeOptions }: NavbarProps) => {
-  const [theme, setTheme] = useState<string>("dark");
-
-  // hydrate from localStorage
-  useEffect(() => {
-    const stored =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("almurshed-theme")
-        : null;
-    if (stored && themeOptions.includes(stored)) {
-      setTheme(stored);
-    }
-  }, [themeOptions]);
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem('almurshed-theme');
+    return stored && defaultThemeOptions.includes(stored) ? stored : 'dark';
+  });
 
   // apply theme class to root
   useEffect(() => {

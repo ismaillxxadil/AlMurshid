@@ -23,38 +23,30 @@ const inputBase =
 type Theme =
   | "dark"
   | "light"
-  | "neon"
-  | "sunset"
-  | "sand"
-  | "sky"
-  | "pink"
-  | "coffee";
+  | "coffee"
+  | "tvgirl"
+  | "sonic"
+  | "pikachu";
 const themeOptions: Theme[] = [
   "dark",
   "light",
-  "neon",
-  "sunset",
-  "sand",
-  "sky",
-  "pink",
   "coffee",
+  "tvgirl",
+  "sonic",
+  "pikachu",
 ];
 
 export default function SignUpPage() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = window.localStorage.getItem('almurshed-theme');
+    return stored && themeOptions.includes(stored as Theme) ? (stored as Theme) : 'dark';
+  });
   const [state, formAction, pending] = useActionState(signUp, {
     error: "",
     values: { email: "", fullName: "" },
   });
-  useEffect(() => {
-    const stored =
-      typeof window !== "undefined"
-        ? localStorage.getItem("almurshed-theme")
-        : null;
-    if (stored && themeOptions.includes(stored as Theme)) {
-      setTheme(stored as Theme);
-    }
-  }, []);
+
 
   useEffect(() => {
     if (typeof document !== "undefined") {

@@ -110,100 +110,6 @@
     background-color: var(--color-surface);
   }
 
-  /* Neon theme override */
-  .neon {
-    --color-bg: #04060f;
-    --color-surface: #0b1220;
-    --color-panel: #0f172a;
-    --color-border: #1f2a44;
-    --color-border-strong: #2c3b5f;
-    --color-ink: #e6f6ff;
-    --color-ink-subtle: #b8d9ff;
-    --color-ink-muted: #7fb4e5;
-    --color-ink-dim: #5d7fa6;
-    --color-ink-deep: #2f3f63;
-    --color-ink-soft-contrast: #9fb8ff;
-    --color-ink-soft: #92a6c9;
-    --color-accent: #00e0a4;
-    --color-accent-strong: #00c38b;
-    --color-surface-alt: #101a2e;
-    --color-surface-contrast: #0a0f1c;
-
-    color-scheme: dark;
-  }
-
-  /* Sunset theme override */
-  :root.sunset {
-    --color-bg: #0c1b12;
-    --color-surface: #10251a;
-    --color-surface-alt: #163221;
-    --color-surface-contrast: #39b36b;
-    --color-border: #1e3a2a;
-    --color-border-strong: #39b36b;
-    --color-ink: #e6f3e9;
-    --color-ink-soft: #9cb8a4;
-    --color-accent: #39b36b;
-    --color-accent-strong: #2a8a51;
-    --color-success: #52d18a;
-    --color-gold: #d3a446;
-
-    color-scheme: dark;
-  }
-
-  /* Sand theme override */
-  :root.sand {
-    --color-bg: #fdf6e3;
-    --color-surface: #f5eacc;
-    --color-surface-alt: #ebe1c5;
-    --color-surface-contrast: #586e75;
-    --color-border: #d6cebf;
-    --color-border-strong: #b58900;
-    --color-ink: #43302b;
-    --color-ink-soft: #8d735a;
-    --color-accent: #d94e1f;
-    --color-accent-strong: #a0320d;
-    --color-success: #2aa198;
-    --color-gold: #b58900;
-
-    color-scheme: light;
-  }
-
-  /* Sky theme override */
-  :root.sky {
-    --color-bg: #f0f9ff;
-    --color-surface: #ffffff;
-    --color-surface-alt: #e0f2fe;
-    --color-surface-contrast: #0284c7;
-    --color-border: #bae6fd;
-    --color-border-strong: #38bdf8;
-    --color-ink: #0c4a6e;
-    --color-ink-soft: #475569;
-    --color-accent: #0ea5e9;
-    --color-accent-strong: #0284c7;
-    --color-success: #10b981;
-    --color-gold: #fbbf24;
-
-    color-scheme: light;
-  }
-
-  /* Pink theme override */
-  :root.pink {
-    --color-bg: #fff5f8;
-    --color-surface: #ffffff;
-    --color-surface-alt: #ffe3ec;
-    --color-surface-contrast: #ff6fa5;
-    --color-border: #ffc2d9;
-    --color-border-strong: #ff6fa5;
-    --color-ink: #36121b;
-    --color-ink-soft: #8a4d68;
-    --color-accent: #ff6fa5;
-    --color-accent-strong: #e75480;
-    --color-success: #34d399;
-    --color-gold: #f4b400;
-
-    color-scheme: light;
-  }
-
   /* Coffee theme override (vanilla, almond, coffee, cabernet, deep oak) */
   :root.coffee {
     --color-bg: #ffe6d1;          /* vanilla base */
@@ -220,6 +126,72 @@
     --color-gold: #c58a3a;        /* warm oak gold */
 
     color-scheme: light;
+  }
+
+  /* TV Girl theme override (vibrant indie pop - hot pink, cyan, blue, magenta) */
+  :root.tvgirl {
+    --color-bg: #0a0520;          /* deep navy blue */
+    --color-surface: #150a30;     /* dark purple blue */
+    --color-surface-alt: #1f0f40; /* rich purple */
+    --color-surface-contrast: #ff1493; /* hot pink */
+    --color-border: #ff1493;      /* hot pink border */
+    --color-border-strong: #00d4ff; /* electric cyan */
+    --color-ink: #ffffff;         /* pure white text */
+    --color-ink-soft: #00d4ff;    /* cyan text */
+    --color-ink-muted: #a78bfa;   /* light purple */
+    --color-ink-dim: #8b5cf6;     /* medium purple */
+    --color-ink-deep: #7c3aed;    /* deep purple */
+    --color-ink-soft-contrast: #ff6ec7; /* light hot pink */
+    --color-accent: #ff1493;      /* hot pink accent */
+    --color-accent-strong: #ff69b4; /* lighter hot pink */
+    --color-success: #00d4ff;     /* cyan success */
+    --color-gold: #ff1493;        /* magenta gold */
+
+    color-scheme: dark;
+  }
+
+  /* Sonic theme override (Sonic the Hedgehog - electric blue, red, yellow, green) */
+  :root.sonic {
+    --color-bg: #001c3d;          /* deep Sonic blue dark */
+    --color-surface: #00274d;     /* midnight blue */
+    --color-surface-alt: #003366; /* darker blue */
+    --color-surface-contrast: #0066ff; /* Sonic blue */
+    --color-border: #0066ff;      /* electric Sonic blue */
+    --color-border-strong: #ffd700; /* gold ring yellow */
+    --color-ink: #ffffff;         /* white text */
+    --color-ink-soft: #00d4ff;    /* light cyan */
+    --color-ink-muted: #66b3ff;   /* sky blue */
+    --color-ink-dim: #4d94ff;     /* medium blue */
+    --color-ink-deep: #3377cc;    /* deep blue */
+    --color-ink-soft-contrast: #ffd700; /* gold yellow */
+    --color-accent: #ff0000;      /* Sonic red (shoes/Knuckles) */
+    --color-accent-strong: #cc0000; /* darker red */
+    --color-success: #00ff00;     /* emerald green */
+    --color-gold: #ffd700;        /* gold ring */
+
+    color-scheme: dark;
+  }
+
+  /* Pikachu theme override (Pikachu - electric yellow, black, red cheeks) */
+  :root.pikachu {
+    --color-bg: #2a1a00;          /* dark brown/black background */
+    --color-surface: #3d2700;     /* warm dark brown */
+    --color-surface-alt: #4d3300; /* lighter brown */
+    --color-surface-contrast: #ffcc00; /* Pikachu yellow */
+    --color-border: #ffcc00;      /* electric yellow border */
+    --color-border-strong: #ff6666; /* rosy red cheeks */
+    --color-ink: #ffffff;         /* white text */
+    --color-ink-soft: #ffdd55;    /* light yellow */
+    --color-ink-muted: #ffaa00;   /* orange yellow */
+    --color-ink-dim: #cc8800;     /* darker yellow */
+    --color-ink-deep: #996600;    /* deep orange */
+    --color-ink-soft-contrast: #ffeb3b; /* bright yellow */
+    --color-accent: #ff6666;      /* red cheeks */
+    --color-accent-strong: #ff3333; /* darker red */
+    --color-success: #66ff66;     /* light green */
+    --color-gold: #ffcc00;        /* Pikachu yellow */
+
+    color-scheme: dark;
   }
 }
 
