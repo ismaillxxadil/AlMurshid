@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signUp } from "../actions/auth";
 import { createClient } from "@/utils/supabase/client";
 import { Logo } from "@/components/Logo";
@@ -37,6 +38,7 @@ const themeOptions: Theme[] = [
 ];
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'dark';
     const stored = window.localStorage.getItem('almurshed-theme');
@@ -46,6 +48,7 @@ export default function SignUpPage() {
     error: "",
     values: { email: "", fullName: "" },
   });
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
 
   useEffect(() => {
@@ -56,6 +59,24 @@ export default function SignUpPage() {
       localStorage.setItem("almurshed-theme", theme);
     }
   }, [theme]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          router.push('/dashboard');
+        } else {
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        setIsCheckingAuth(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const supabaseRedirect = "http://localhost:3000/api/auth/callback?next=/dashboard";
@@ -74,6 +95,18 @@ export default function SignUpPage() {
       options: { redirectTo: supabaseRedirect },
     });
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin mx-auto"></div>
+          <p className="text-[var(--color-ink-soft)] font-mono text-sm uppercase tracking-widest">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)] selection:bg-[var(--color-ink)] selection:text-[var(--color-bg)]"

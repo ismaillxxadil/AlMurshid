@@ -11,6 +11,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signIn } from "../actions/auth";
 import { createClient } from "@/utils/supabase/client";
 import { Logo } from "@/components/Logo";
@@ -22,6 +23,7 @@ const inputBase =
   "w-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-ink)] px-4 py-3 focus:outline-none focus:border-[var(--color-ink)] font-mono text-sm placeholder-[var(--color-ink-soft)]";
 
 export default function SignInPage() {
+  const router = useRouter();
   type Theme =
     | "dark"
     | "light"
@@ -46,6 +48,7 @@ export default function SignInPage() {
     error: "",
     values: { email: "" },
   });
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const supabaseRedirect = "http://localhost:3000/api/auth/callback?next=/dashboard";
 
 
@@ -59,6 +62,24 @@ export default function SignInPage() {
     }
   }, [theme]);
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          router.push('/dashboard');
+        } else {
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        setIsCheckingAuth(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
+
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   const handleSignInWithProvider = async (provider: "google" | "github") => {
     const supabase = createClient();
@@ -67,6 +88,17 @@ export default function SignInPage() {
       options: { redirectTo: supabaseRedirect },
     });
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin mx-auto"></div>
+          <p className="text-[var(--color-ink-soft)] font-mono text-sm uppercase tracking-widest">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

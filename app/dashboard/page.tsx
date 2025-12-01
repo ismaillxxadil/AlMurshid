@@ -168,7 +168,7 @@ export default function DashboardPage() {
   }, [selectedProject]);
 
   const xp = currentXp;
-  const nextLevel = 5000;
+  const nextLevel = 1000;
   const xpProgress = loading
     ? 0
     : Math.min(100, (currentXp / nextLevel) * 100);
