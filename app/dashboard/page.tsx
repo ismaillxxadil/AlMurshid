@@ -1,38 +1,18 @@
 "use client";
 
-import React, { useActionState, useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Plus,
-  Sparkles,
-  Activity,
-  Edit2,
-  Trash2,
-  LayoutGrid,
-  AlertCircle,
-  Flame,
-  Trophy,
-  Target,
-  Zap,
-  Award,
-  Shield,
-} from "lucide-react";
-import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import React, { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getUserDashboardData, signOut } from "../actions/auth";
-import { addProject } from "../actions/projects";
-import Image from "next/image";
-import { Logo } from "@/components/Logo";
-import { ThemeSelector } from "@/components/ThemeSelector";
+import { getUserDashboardData } from "../actions/auth";
+import { addProject, updateProject, deleteProject } from "../actions/projects";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { ProfileCard } from "@/components/dashboard/ProfileCard";
+import { StatsGrid } from "@/components/dashboard/StatsGrid";
+import { DailyQuests } from "@/components/dashboard/DailyQuests";
+import { AchievementsBadges } from "@/components/dashboard/AchievementsBadges";
+import { ProjectsGrid } from "@/components/dashboard/ProjectsGrid";
+import { NewProjectModal } from "@/components/dashboard/NewProjectModal";
 
-type Theme =
-  | "dark"
-  | "light"
-  | "coffee"
-  | "tvgirl"
-  | "sonic"
-  | "pikachu";
+type Theme = "dark" | "light" | "coffee" | "tvgirl" | "sonic" | "pikachu";
 const themeOptions: Theme[] = [
   "dark",
   "light",
@@ -49,7 +29,7 @@ type Project = {
   eta: string;
   tasks: number;
   progress: number;
-  xpReward: number; // New: XP Reward for completing the project
+  xpReward: number;
 };
 
 type Quest = {
@@ -71,20 +51,6 @@ type TaskSummary = {
   total: number;
   completed: number;
 };
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="px-6 py-3 bg-[var(--color-accent)] text-white border border-[var(--color-accent)] text-xs font-mono font-bold hover:bg-[var(--color-accent-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_-5px_var(--color-accent)]"
-    >
-      {pending ? "EXECUTING..." : "EXECUTE_CREATE"}
-    </button>
-  );
-}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -108,20 +74,14 @@ export default function DashboardPage() {
     null
   );
 
-  // New: Daily Quests Data
   const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
-
   const [tasksSummary, setTasksSummary] = useState<TaskSummary>({
     total: 0,
     completed: 0,
   });
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-
   const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
 
   const Skeleton = ({ className = "" }: { className?: string }) => (
     <div className={`skeleton ${className}`} aria-hidden />
@@ -145,7 +105,7 @@ export default function DashboardPage() {
           setUserLevel(levelValue);
           setTotalXp(totalXpValue);
           setProjects((data.projects as Project[]) || []);
-          setCurrentXp(totalXpValue % 1000); // XP towards next level
+          setCurrentXp(totalXpValue % 1000);
           setUserProfilePicture(data.stats.userProfilePicture || null);
           setStreak(data.stats.streak ?? 0);
           setAchievements(
@@ -193,25 +153,14 @@ export default function DashboardPage() {
     ? 0
     : Math.min(100, (currentXp / nextLevel) * 100);
   const title = (totalXp ?? 0) > 4000 ? "Chief Architect" : "Systems Lead";
-  const initials = useMemo(() => {
-    const parts = username.trim().split(/\s+/).filter(Boolean);
-    const letters = (parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "");
-    return (letters || username.slice(0, 2) || "U").toUpperCase();
-  }, [username]);
 
-  const statusColor = useMemo(
-    () => ({
-      Active:
-        "border-[var(--color-accent)] text-[var(--color-accent)] bg-[var(--color-accent)]/5",
-      Review:
-        "border-[var(--color-ink)] text-[var(--color-ink)] bg-[var(--color-surface-alt)]",
-      Planning:
-        "border-[var(--color-ink-soft)] text-[var(--color-ink-soft)] border-dashed",
-      Paused:
-        "border-[var(--color-border)] text-[var(--color-ink-soft)] opacity-60",
-    }),
-    []
-  );
+  const questCompletion =
+    tasksSummary.total > 0
+      ? `${Math.round((tasksSummary.completed / tasksSummary.total) * 100)}%`
+      : "0%";
+  const activeBadgeCount = achievements.filter((a) => a.active ?? true).length;
+  const activeBadgesDisplay =
+    activeBadgeCount > 0 ? activeBadgeCount.toString().padStart(2, "0") : "0";
 
   const [formState, formAction] = useActionState(addProject, {
     error: undefined,
@@ -222,18 +171,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (formState.success && formState.project) {
       setFormOpen(false);
-      // Navigate to generate page for the new project
       router.push(`/dashboard/${formState.project.id}/generate`);
     }
   }, [formState.success, formState.project, router]);
-
-  const handleSaveName = (id: string) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, name: editingName || p.name } : p))
-    );
-    setEditingId(null);
-    setEditingName("");
-  };
 
   const toggleQuest = (id: number) => {
     setDailyQuests((prev) =>
@@ -241,15 +181,62 @@ export default function DashboardPage() {
     );
   };
 
-  const questCompletion =
-    tasksSummary.total > 0
-      ? `${Math.round(
-          (tasksSummary.completed / tasksSummary.total) * 100
-        )}%`
-      : "0%";
-  const activeBadgeCount = achievements.filter((a) => a.active ?? true).length;
-  const activeBadgesDisplay =
-    activeBadgeCount > 0 ? activeBadgeCount.toString().padStart(2, "0") : "0";
+  const handleEditProject = async (id: string, name: string) => {
+    if (!name.trim()) return;
+
+    // Optimistically update UI
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, name: name.trim() } : p))
+    );
+
+    try {
+      const formData = new FormData();
+      formData.append("name", name.trim());
+      
+      const result = await updateProject(Number(id), {}, formData);
+      
+      if (result.error) {
+        console.error("Failed to update project:", result.error);
+        // Revert on error - refetch data
+        const data = await getUserDashboardData();
+        if (data) {
+          setProjects((data.projects as Project[]) || []);
+        }
+      }
+    } catch (err) {
+      console.error("Error updating project:", err);
+      // Revert on error
+      const data = await getUserDashboardData();
+      if (data) {
+        setProjects((data.projects as Project[]) || []);
+      }
+    }
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    // Optimistically update UI
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+
+    try {
+      const result = await deleteProject(Number(id));
+      
+      if (result.error) {
+        console.error("Failed to delete project:", result.error);
+        // Revert on error - refetch data
+        const data = await getUserDashboardData();
+        if (data) {
+          setProjects((data.projects as Project[]) || []);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      // Revert on error
+      const data = await getUserDashboardData();
+      if (data) {
+        setProjects((data.projects as Project[]) || []);
+      }
+    }
+  };
 
   return (
     <div
@@ -340,50 +327,14 @@ export default function DashboardPage() {
       `}</style>
 
       {/* Header */}
-      <div className="tech-border-b bg-[var(--color-bg)]/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Logo subtitle="SYSTEM::DASHBOARD" />
-
-          <div className="flex items-center gap-6">
-            {/* NEW: Gamified Streak Counter */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1 border border-[var(--color-border)] bg-[var(--color-surface-alt)] min-w-[140px]">
-              <Flame className="w-4 h-4 text-[var(--color-gold)] fill-[var(--color-gold)] animate-pulse" />
-              {loading ? (
-                <Skeleton className="h-4 w-16" />
-              ) : (
-                <div className="text-xs font-mono font-bold">
-                  <span className="text-[var(--color-ink)]">{streak ?? 0}</span>
-                  <span className="text-[var(--color-ink-soft)] ml-1">
-                    DAY_STREAK
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="h-6 w-px bg-[var(--color-border)]"></div>
-
-            <ThemeSelector
-              theme={theme}
-              options={themeOptions}
-              onChange={(value) => setTheme(value as Theme)}
-              className="hidden md:block"
-            />
-
-            <div className="h-6 w-px bg-[var(--color-border)]"></div>
-
-            <Link
-              onClick={async () => {
-                await signOut();
-              }}
-              href="/"
-              className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-alt)] px-3 py-2 border border-transparent hover:border-[var(--color-border)] transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              LOGOUT
-            </Link>
-          </div>
-        </div>
-      </div>
+      <DashboardHeader
+        theme={theme}
+        themeOptions={themeOptions}
+        onThemeChange={(value) => setTheme(value as Theme)}
+        streak={streak}
+        loading={loading}
+        Skeleton={Skeleton}
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-12 relative">
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none opacity-[0.03] z-0" />
@@ -391,503 +342,55 @@ export default function DashboardPage() {
         {/* Profile & Stats Section */}
         <section className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
           {/* User Info & XP (Left) */}
-          <div className="lg:col-span-4 bg-[var(--color-bg)] p-8 flex flex-col justify-between min-h-[200px]">
-            <div className="flex items-start justify-between">
-              <div>
-                {loading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-3 w-28" />
-                    <Skeleton className="h-6 w-24" />
-                  </div>
-                ) : (
-                  <>
-                    <h1 className="text-2xl font-bold mb-1">{username}</h1>
-                    <div className="text-xs font-mono text-[var(--color-accent)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[var(--color-accent)] rounded-full animate-pulse" />
-                      {title} {/* ID: {userLevel} */}
-                    </div>
-                    <div className="inline-flex items-center gap-2 text-[10px] font-mono uppercase border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] px-2 py-1 text-[var(--color-ink)]">
-                      <Activity className="w-3 h-3 text-[var(--color-accent)]" />{" "}
-                      Level {String(userLevel ?? 0).padStart(2, "0")}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Rank Badge */}
-              <div className="relative group cursor-help">
-                {loading ? (
-                  <Skeleton className="w-16 h-16 rounded-full border border-[var(--color-border)]" />
-                ) : (
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-accent)] via-[var(--color-gold)] to-[var(--color-ink)] opacity-60 blur-sm" />
-                    <div className="relative w-full h-full rounded-full overflow-hidden border border-[var(--color-border-strong)] bg-[var(--color-surface-alt)] shadow-[0_0_0_2px_var(--color-bg)]">
-                      {userProfilePicture ? (
-                        <Image
-                          src={userProfilePicture}
-                          alt="user profile picture"
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center w-full h-full text-xl font-bold font-mono text-[var(--color-ink)] bg-[var(--color-accent)]/10">
-                          {initials}
-                        </div>
-                      )}
-                      <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_30%_30%,var(--color-ink)/10,transparent_45%),radial-gradient(circle_at_70%_70%,var(--color-accent)/10,transparent_40%)]" />
-                    </div>
-                  </div>
-                )}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[var(--color-surface)] border border-[var(--color-border)] p-2 text-[10px] font-mono whitespace-nowrap z-20">
-                  RANK: ALPHA ARCHITECT
-                </div>
-              </div>
-            </div>
-
-            {/* XP System Bar */}
-            <div className="mt-8">
-              {loading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-3 w-36" />
-                  <Skeleton className="h-3 w-full" />
-                  <div className="flex justify-between text-[9px] font-mono text-[var(--color-ink-soft)]">
-                    <Skeleton className="h-3 w-32" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between text-[10px] font-mono mb-2 text-[var(--color-ink-soft)]">
-                    <span>SYSTEM_CHARGE (XP)</span>
-                    <span className="text-[var(--color-accent)]">
-                      {currentXp} / {nextLevel}
-                    </span>
-                  </div>
-                  <div className="h-3 w-full bg-[var(--color-surface-alt)] relative overflow-hidden border border-[var(--color-border)]">
-                    <div
-                      className="h-full bg-[var(--color-accent)] absolute top-0 right-0 transition-all duration-500"
-                      style={{ width: `${xpProgress}%` }}
-                    />
-                    {/* Grid lines over bar */}
-                    <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36zwjjgzhhZWGMYAEYB8RmROaABADeOQ8CXl/xfgAAAABJRU5ErkJggg==')] opacity-30"></div>
-                  </div>
-                  <div className="mt-1 flex justify-between text-[9px] font-mono text-[var(--color-ink-soft)]">
-                    <span>NEXT_REWARD: UNLOCK_BETA_ACCESS</span>
-                    <span>{xpProgress.toFixed(1)}% LOADED</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <ProfileCard
+            username={username}
+            title={title}
+            userLevel={userLevel}
+            userProfilePicture={userProfilePicture}
+            currentXp={currentXp}
+            nextLevel={nextLevel}
+            xpProgress={xpProgress}
+            loading={loading}
+            Skeleton={Skeleton}
+          />
 
           {/* Gamified Stats Grid (Right) */}
-          <div className="lg:col-span-5 grid grid-cols-2 gap-px bg-[var(--color-border)]">
-            {[
-              {
-                label: "Total XP Earned",
-                value:
-                  (totalXp ?? 0) > 0
-                    ? `${((totalXp ?? 0) / 1000).toFixed(1)}k`
-                    : "0",
-                icon: <Zap className="w-4 h-4" />,
-              },
-              {
-                label: "Quest Completion",
-                value: questCompletion,
-                icon: <Target className="w-4 h-4" />,
-              },
-              {
-                label: "Total Tasks",
-                value: loading ? "..." : tasksSummary.total.toString(),
-                icon: <Sparkles className="w-4 h-4" />,
-              },
-              {
-                label: "Active Badges",
-                value: activeBadgesDisplay,
-                icon: <Award className="w-4 h-4" />,
-              },
-            ].map((stat, idx) => (
-              <div
-                key={idx}
-                className="bg-[var(--color-bg)] p-6 flex flex-col justify-between hover:bg-[var(--color-surface-alt)] transition-colors group cursor-default"
-              >
-                <div className="text-[var(--color-ink-soft)] group-hover:text-[var(--color-accent)] transition-colors mb-4 flex justify-between items-start">
-                  {stat.icon}
-                  <div className="w-1 h-1 bg-[var(--color-border)] group-hover:bg-[var(--color-accent)] transition-colors"></div>
-                </div>
-                <div>
-                  {loading ? (
-                    <Skeleton className="h-7 w-20" />
-                  ) : (
-                    <div className="text-3xl font-mono font-bold tracking-tighter">
-                      {stat.value}
-                    </div>
-                  )}
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--color-ink-soft)] mt-1 group-hover:text-[var(--color-ink)] transition-colors">
-                    {stat.label}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatsGrid
+            totalXp={totalXp}
+            questCompletion={questCompletion}
+            tasksSummaryTotal={tasksSummary.total}
+            activeBadgesDisplay={activeBadgesDisplay}
+            loading={loading}
+            Skeleton={Skeleton}
+          />
 
           {/* Daily Protocols (Quests) */}
-          <div className="lg:col-span-3 bg-[var(--color-surface-alt)] p-6 border-r border-[var(--color-border)]">
-            <div className="flex items-center gap-2 mb-6 text-[var(--color-ink)]">
-              <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
-              <h3 className="text-xs font-mono font-bold uppercase tracking-widest">
-                Daily Protocols
-              </h3>
-            </div>
-            <div className="space-y-3">
-              {dailyQuests.map((quest) => (
-                <div
-                  key={quest.id}
-                  onClick={() => toggleQuest(quest.id)}
-                  className={`p-3 border cursor-pointer transition-all relative group ${
-                    quest.completed
-                      ? "bg-[var(--color-success)]/10 border-[var(--color-success)]"
-                      : "bg-[var(--color-bg)] border-[var(--color-border)] hover:border-[var(--color-accent)]"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <span
-                      className={`text-xs font-mono ${
-                        quest.completed
-                          ? "text-[var(--color-success)] line-through"
-                          : "text-[var(--color-ink)]"
-                      }`}
-                    >
-                      {quest.title}
-                    </span>
-                    {quest.completed && (
-                      <div className="w-2 h-2 bg-[var(--color-success)] rounded-full" />
-                    )}
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-mono ${
-                        quest.completed
-                          ? "text-[var(--color-success)]"
-                          : "text-[var(--color-gold)]"
-                      }`}
-                    >
-                      +{quest.reward} XP
-                    </span>
-                    {!quest.completed && (
-                      <div className="text-[9px] text-[var(--color-ink-soft)] opacity-0 group-hover:opacity-100">
-                        CLICK TO COMPLETE
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DailyQuests dailyQuests={dailyQuests} onToggleQuest={toggleQuest} />
         </section>
 
         {/* Achievements / Badges Strip */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {loading ? (
-            Array.from({ length: 4 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-4 p-4 border border-[var(--color-border)] bg-[var(--color-bg)]"
-              >
-                <Skeleton className="w-10 h-10" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-              </div>
-            ))
-          ) : achievements.length === 0 ? (
-            <div className="col-span-2 md:col-span-4 border border-[var(--color-border)] bg-[var(--color-bg)] p-6 text-center text-xs font-mono text-[var(--color-ink-soft)] uppercase tracking-widest">
-              No achievements unlocked yet
-            </div>
-          ) : (
-            achievements.map((badge) => {
-              const isActive = badge.active ?? true;
-              return (
-                <div
-                  key={badge.id}
-                  className={`flex items-center gap-4 p-4 border ${
-                    isActive
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
-                      : "border-[var(--color-border)] bg-[var(--color-bg)] opacity-70"
-                  }`}
-                >
-                  <div
-                    className={`p-2 ${
-                      isActive
-                        ? "text-[var(--color-accent)]"
-                        : "text-[var(--color-ink-soft)]"
-                    }`}
-                  >
-                    {isActive ? (
-                      <Sparkles className="w-4 h-4" />
-                    ) : (
-                      <Shield className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold font-mono uppercase">
-                      {badge.name}
-                    </div>
-                    <div className="text-[10px] text-[var(--color-ink-soft)] font-mono">
-                      {badge.description || "Achievement unlocked"}
-                    </div>
-                    {badge.earned_at && (
-                      <div className="text-[9px] text-[var(--color-ink-soft)] font-mono mt-1">
-                        {new Date(badge.earned_at).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </section>
+        <AchievementsBadges
+          achievements={achievements}
+          loading={loading}
+          Skeleton={Skeleton}
+        />
 
         {/* Projects Section */}
-        <section className="relative z-10 space-y-6">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-[var(--color-accent)]"></div>
-              <h2 className="text-lg font-bold font-mono tracking-tight">
-                ACTIVE MISSIONS
-              </h2>
-              <span className="text-xs text-[var(--color-ink-soft)] font-mono bg-[var(--color-surface-alt)] px-2 py-0.5 rounded-none">
-                COUNT: {projects.length}
-              </span>
-            </div>
-
-            <button
-              onClick={() => setFormOpen(true)}
-              className="group flex items-center gap-2 px-5 py-2 bg-[var(--color-ink)] text-[var(--color-bg)] hover:bg-[var(--color-accent)] hover:text-white transition-all font-mono text-xs font-bold uppercase tracking-widest rounded-none"
-            >
-              <Plus className="w-4 h-4" />
-              INITIALIZE_NEW
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((proj) => (
-              <div
-                key={proj.id}
-                className="group relative bg-[var(--color-bg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-all p-6 flex flex-col justify-between min-h-[240px]"
-              >
-                <Link
-                  href={`/dashboard/${proj.id}`}
-                  className="absolute inset-0 z-0"
-                  aria-label={`Open project ${proj.name}`}
-                />
-                {/* Hover Corner Effect */}
-                <div className="absolute top-0 right-0 w-0 h-0 border-t-[20px] border-r-[20px] border-t-transparent border-r-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                {/* Top Bar */}
-                <div className="flex justify-between items-start mb-6 relative z-10">
-                  <div
-                    className={`px-2 py-1 text-[10px] font-mono uppercase tracking-widest border ${
-                      statusColor[proj.status]
-                    }`}
-                  >
-                    {proj.status}
-                  </div>
-                  <div className="font-mono text-xs text-[var(--color-ink-soft)] group-hover:text-[var(--color-ink)] transition-colors">
-                    {proj.id}
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 relative z-10">
-                  {editingId === proj.id ? (
-                    <div className="flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-200">
-                      <input
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        className="w-full bg-[var(--color-surface-alt)] border border-[var(--color-border)] p-2 text-sm font-bold focus:outline-none focus:border-[var(--color-accent)]"
-                        autoFocus
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSaveName(proj.id);
-                          }}
-                          className="text-xs bg-[var(--color-accent)] text-white px-3 py-1 font-bold hover:bg-[var(--color-accent-strong)]"
-                        >
-                          SAVE
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingId(null);
-                          }}
-                          className="text-xs border border-[var(--color-border)] px-3 py-1 hover:bg-[var(--color-surface-alt)]"
-                        >
-                          CANCEL
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <h3
-                      className="text-xl font-bold mb-2 group-hover:text-[var(--color-accent)] transition-colors cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingId(proj.id);
-                        setEditingName(proj.name);
-                      }}
-                    >
-                      {proj.name}
-                    </h3>
-                  )}
-                  <div className="text-xs text-[var(--color-ink-soft)] font-mono mt-4 flex gap-4 border-t border-[var(--color-border)] pt-4 border-dashed">
-                    <span className="flex items-center gap-1">
-                      <Activity className="w-3 h-3" /> {proj.tasks} TASKS
-                    </span>
-                    <span>ETA: {proj.eta}</span>
-                  </div>
-                </div>
-
-                {/* Footer / Progress */}
-                <div className="mt-6 relative z-10">
-                  {/* Reward Pill */}
-                  <div className="mb-3 flex justify-end">
-                    <span className="text-[9px] font-mono text-[var(--color-gold)] bg-[var(--color-gold)]/10 border border-[var(--color-gold)]/30 px-2 py-0.5">
-                      REWARD: {proj.xpReward} XP
-                    </span>
-                  </div>
-
-                  <div className="mb-3">
-                    <Link
-                      href={`/dashboard/${proj.id}`}
-                      className="relative inline-flex items-center gap-2 px-3 py-1 bg-[var(--color-ink)] text-[var(--color-bg)] text-[11px] font-mono font-bold uppercase tracking-widest border border-[var(--color-ink)] hover:bg-[var(--color-accent)] hover:border-[var(--color-accent)] hover:text-white transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ArrowLeft className="w-3 h-3 rotate-180" />
-                      Open Project
-                    </Link>
-                  </div>
-
-                  <div className="flex justify-between text-[10px] font-mono mb-2 uppercase tracking-widest text-[var(--color-ink-soft)]">
-                    <span>Completion</span>
-                    <span>{proj.progress}%</span>
-                  </div>
-                  <div className="h-1 w-full bg-[var(--color-surface-alt)] overflow-hidden">
-                    <div
-                      className="h-full bg-[var(--color-ink)] group-hover:bg-[var(--color-accent)] transition-colors"
-                      style={{ width: `${proj.progress}%` }}
-                    />
-                  </div>
-
-                  {/* Action Overlay */}
-                  <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingId(proj.id);
-                        setEditingName(proj.name);
-                      }}
-                      className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-accent)] transition-colors"
-                      title="Edit Name"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        confirm("Delete?") &&
-                          setProjects((prev) =>
-                            prev.filter((p) => p.id !== proj.id)
-                          );
-                      }}
-                      className="relative p-1.5 hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-red-500 transition-colors"
-                      title="Delete Project"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <ProjectsGrid
+          projects={projects}
+          onOpenForm={() => setFormOpen(true)}
+          onEditProject={handleEditProject}
+          onDeleteProject={handleDeleteProject}
+        />
       </main>
 
-      {/* New Project Modal (Terminal Style) */}
-      {formOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--color-bg)]/90 backdrop-blur-sm"
-          dir="rtl"
-        >
-          <div className="w-full max-w-2xl bg-[var(--color-bg)] border border-[var(--color-accent)] shadow-[0_0_50px_-10px_rgba(0,68,255,0.2)] animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
-              <div className="flex items-center gap-2 font-mono text-sm font-bold text-[var(--color-accent)]">
-                <AlertCircle className="w-4 h-4" />
-                <span>PROJECT_INITIALIZER.EXE</span>
-              </div>
-              <button
-                onClick={() => setFormOpen(false)}
-                className="hover:text-[var(--color-accent)] font-mono"
-              >
-                [ESC]
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form action={formAction} className="p-8 space-y-6">
-              <div className="space-y-2">
-                <label className=" text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)] flex items-center gap-2">
-                  <span className="w-1 h-1 bg-[var(--color-accent)]"></span>{" "}
-                  Project Designation (Name)
-                </label>
-                <input
-                  name="name"
-                  required
-                  className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-ink-soft)]/30 transition-colors"
-                  placeholder="ENTER_IDENTIFIER..."
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-xs font-mono uppercase tracking-widest text-[var(--color-ink-soft)]">
-                    Parameters (Description)
-                  </label>
-                  <textarea
-                    name="description"
-                    className="w-full bg-[var(--color-bg)] border border-[var(--color-border)] p-3 font-mono text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
-                    placeholder="..."
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              {formState.error && (
-                <div className="p-3 bg-red-500/10 border border-red-500 text-red-500 text-xs font-mono">
-                  ERROR: {formState.error}
-                </div>
-              )}
-
-              <div className="pt-6 flex justify-end gap-4 border-t border-[var(--color-border)] mt-2">
-                <button
-                  type="button"
-                  onClick={() => setFormOpen(false)}
-                  className="px-6 py-3 border border-[var(--color-border)] text-xs font-mono font-bold hover:bg-[var(--color-surface-alt)] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors"
-                >
-                  ABORT_SEQUENCE
-                </button>
-                <SubmitButton />
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* New Project Modal */}
+      <NewProjectModal
+        isOpen={formOpen}
+        onClose={() => setFormOpen(false)}
+        formAction={formAction}
+        formError={formState.error}
+      />
     </div>
   );
 }
