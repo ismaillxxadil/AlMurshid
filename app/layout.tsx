@@ -33,7 +33,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var themes = ["dark","light","neon","sunset","sand","sky","pink","coffee"];
+                  var themes = ["dark","light","coffee","tvgirl","sonic","pikachu"];
                   var stored = localStorage.getItem("almurshed-theme");
                   var theme = themes.indexOf(stored) !== -1 ? stored : "dark";
                   var root = document.documentElement;
