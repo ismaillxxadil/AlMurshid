@@ -188,9 +188,9 @@ export default function TaskManager({
         phase_id: taskData.phase_id,
       });
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
-      } else if (result.task) {
+      } else if ("task" in result && result.task) {
         setTasks([...tasks, result.task]);
         setCreatingTask(false);
         showSuccess(language === 'ar' ? 'تم إنشاء المهمة بنجاح' : 'Task created successfully');
@@ -209,9 +209,9 @@ export default function TaskManager({
     try {
       const result = await updateTask(taskId, projectId, updates);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
-      } else if (result.task) {
+      } else if ("task" in result && result.task) {
         setTasks(tasks.map(t => t.id === taskId ? result.task : t));
         setEditingTask(null);
         showSuccess(language === 'ar' ? 'تم تحديث المهمة بنجاح' : 'Task updated successfully');
@@ -232,7 +232,7 @@ export default function TaskManager({
     try {
       const result = await deleteTask(taskId, projectId);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
       } else {
         setTasks(tasks.filter(t => t.id !== taskId));
@@ -258,9 +258,9 @@ export default function TaskManager({
         order_index: phaseData.order_index!,
       });
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
-      } else if (result.phase) {
+      } else if ("phase" in result && result.phase) {
         setPhases([...phases, result.phase]);
         setCreatingPhase(false);
         showSuccess(language === 'ar' ? 'تم إنشاء المرحلة بنجاح' : 'Phase created successfully');
@@ -279,9 +279,9 @@ export default function TaskManager({
     try {
       const result = await updatePhase(phaseId, projectId, updates);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
-      } else if (result.phase) {
+      } else if ("phase" in result && result.phase) {
         setPhases(phases.map(p => p.id === phaseId ? result.phase : p));
         setEditingPhase(null);
         showSuccess(language === 'ar' ? 'تم تحديث المرحلة بنجاح' : 'Phase updated successfully');
@@ -302,7 +302,7 @@ export default function TaskManager({
     try {
       const result = await deletePhase(phaseId, projectId);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
       } else {
         setPhases(phases.filter(p => p.id !== phaseId));
@@ -325,9 +325,9 @@ export default function TaskManager({
     try {
       const result = await addTaskDependency(taskId, predecessorId, projectId);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
-      } else if (result.dependency) {
+      } else if ("dependency" in result && result.dependency) {
         setDependencies([...dependencies, result.dependency]);
         showSuccess(language === 'ar' ? 'تم إضافة التبعية بنجاح' : 'Dependency added successfully');
         onDataChange?.();
@@ -345,7 +345,7 @@ export default function TaskManager({
     try {
       const result = await removeTaskDependency(dependencyId, projectId);
 
-      if (result.error) {
+      if ("error" in result && result.error) {
         showError(result.error);
       } else {
         setDependencies(dependencies.filter(d => d.id !== dependencyId));

@@ -717,7 +717,7 @@ export default function DashboardPage() {
                     OR send PROJECT_ID and PASSWORD separately for security
                   </li>
                   <li>Teammate clicks link or enters ID + password on JOIN_PROJECT</li>
-                  <li>They'll be added as a team member</li>
+                  <li>They&apos;ll be added as a team member</li>
                 </ol>
               </div>
 
